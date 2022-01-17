@@ -32,6 +32,6 @@ RUN chmod +x /pbreact
 
 EXPOSE 443
 
-USER nobody:nogroup
+USER root:root
 
 ENTRYPOINT ["/pbreact"]
