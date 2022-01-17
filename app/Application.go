@@ -1,13 +1,13 @@
 package app
 
 import (
-	"fmt"
+	"net/http"
 
-	"github.com/gin-gonic/autotls"
 	"github.com/gin-gonic/gin"
 	"github.com/johannes-kuhfuss/pbreact/config"
 	"github.com/johannes-kuhfuss/pbreact/handler"
 	"github.com/johannes-kuhfuss/services_utils/logger"
+	"golang.org/x/crypto/acme/autocert"
 )
 
 var (
@@ -22,7 +22,6 @@ func StartApp() {
 	}
 	initRouter()
 	mapUrls()
-	getCert()
 	startRouter()
 	logger.Info("Application ended")
 }
@@ -39,22 +38,12 @@ func initRouter() {
 
 func mapUrls() {
 	cfg.RunTime.Router.GET("/ping", handler.Ping)
-}
-
-func getCert() {
-	err := autotls.Run(cfg.RunTime.Router, cfg.CertDomain)
-	if err != nil {
-		logger.Error("Error while getting certificate", err)
-		panic(err)
-	}
+	cfg.RunTime.Router.GET("/tls", handler.TlsData)
 }
 
 func startRouter() {
-	listenAddr := fmt.Sprintf("%s:%s", cfg.Server.Host, cfg.Server.Port)
-	logger.Info(fmt.Sprintf("Listening on %v", listenAddr))
-
-	if err := cfg.RunTime.Router.Run(listenAddr); err != nil {
-		logger.Error("Error while starting router", err)
+	err := http.Serve(autocert.NewListener(cfg.CertDomain), cfg.RunTime.Router)
+	if err != nil {
 		panic(err)
 	}
 }
