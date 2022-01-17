@@ -1,13 +1,12 @@
 package app
 
 import (
-	"net/http"
+	"fmt"
 
 	"github.com/gin-gonic/gin"
 	"github.com/johannes-kuhfuss/pbreact/config"
 	"github.com/johannes-kuhfuss/pbreact/handler"
 	"github.com/johannes-kuhfuss/services_utils/logger"
-	"golang.org/x/crypto/acme/autocert"
 )
 
 var (
@@ -42,8 +41,16 @@ func mapUrls() {
 }
 
 func startRouter() {
-	err := http.Serve(autocert.NewListener(cfg.CertDomain), cfg.RunTime.Router)
-	if err != nil {
+	/*
+		err := http.Serve(autocert.NewListener(cfg.CertDomain), cfg.RunTime.Router)
+		if err != nil {
+			panic(err)
+		}
+	*/
+	listenAddr := fmt.Sprintf("%s:%s", cfg.Server.Host, cfg.Server.Port)
+	logger.Info(fmt.Sprintf("Listening on %v", listenAddr))
+	if err := cfg.RunTime.Router.Run(listenAddr); err != nil {
+		logger.Error("Error while starting router", err)
 		panic(err)
 	}
 }
