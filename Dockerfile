@@ -30,7 +30,10 @@ COPY --from=build /pbreact /pbreact
 
 RUN chmod +x /pbreact
 
+EXPOSE 80
+EXPOSE 8080
 EXPOSE 443
+EXPOSE 8443
 
 USER root:root
 
