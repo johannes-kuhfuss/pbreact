@@ -31,6 +31,7 @@ func StartApp() {
 }
 
 func initRouter() {
+	logger.Info("Init router")
 	gin.SetMode(cfg.Gin.Mode)
 	gin.DefaultWriter = logger.GetLogger()
 	router := gin.New()
@@ -38,11 +39,14 @@ func initRouter() {
 	router.Use(gin.Recovery())
 	router.SetTrustedProxies(nil)
 	cfg.RunTime.Router = router
+	logger.Info("Done init router")
 }
 
 func mapUrls() {
+	logger.Info("Mapping URLs")
 	cfg.RunTime.Router.GET("/ping", handler.Ping)
 	cfg.RunTime.Router.GET("/tls", handler.TlsData)
+	logger.Info("Done mapping URLs")
 }
 
 func setupHttpServer(addr string) *http.Server {
@@ -81,6 +85,8 @@ func startRouter() {
 		httpsSrv.TLSConfig = &tls.Config{GetCertificate: m.GetCertificate}
 
 		go func() {
+			msg := fmt.Sprintf("Starting https server on %v", listenAddr)
+			logger.Info(msg)
 			err := httpsSrv.ListenAndServeTLS("", "")
 			if err != nil {
 				panic(err)
@@ -93,6 +99,8 @@ func startRouter() {
 	if m != nil {
 		httpSrv.Handler = m.HTTPHandler(httpSrv.Handler)
 	}
+	msg := fmt.Sprintf("Starting http server on %v", listenAddr)
+	logger.Info(msg)
 	err := httpSrv.ListenAndServe()
 	if err != nil {
 		panic(err)
