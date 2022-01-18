@@ -1,12 +1,17 @@
 package app
 
 import (
+	"context"
+	"crypto/tls"
 	"fmt"
+	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/johannes-kuhfuss/pbreact/config"
 	"github.com/johannes-kuhfuss/pbreact/handler"
 	"github.com/johannes-kuhfuss/services_utils/logger"
+	"golang.org/x/crypto/acme/autocert"
 )
 
 var (
@@ -40,17 +45,40 @@ func mapUrls() {
 	cfg.RunTime.Router.GET("/tls", handler.TlsData)
 }
 
-func startRouter() {
-	/*
-		err := http.Serve(autocert.NewListener(cfg.CertDomain), cfg.RunTime.Router)
-		if err != nil {
-			panic(err)
-		}
-	*/
+func setupHttpServer() *http.Server {
 	listenAddr := fmt.Sprintf("%s:%s", cfg.Server.Host, cfg.Server.Port)
-	logger.Info(fmt.Sprintf("Listening on %v", listenAddr))
-	if err := cfg.RunTime.Router.Run(listenAddr); err != nil {
-		logger.Error("Error while starting router", err)
+	return &http.Server{
+		Addr:         listenAddr,
+		Handler:      cfg.RunTime.Router,
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 5 * time.Second,
+		IdleTimeout:  120 * time.Second,
+	}
+}
+
+func startRouter() {
+	var srv *http.Server
+
+	dataDir := "."
+	hostPolicy := func(ctx context.Context, host string) error {
+		allowedHost := cfg.CertDomain
+		if host == allowedHost {
+			return nil
+		}
+		return fmt.Errorf("acme/autocert: only %s host is allowed", allowedHost)
+	}
+
+	srv = setupHttpServer()
+	m := &autocert.Manager{
+		Prompt:     autocert.AcceptTOS,
+		Cache:      autocert.DirCache(dataDir),
+		HostPolicy: hostPolicy,
+	}
+
+	srv.TLSConfig = &tls.Config{GetCertificate: m.GetCertificate}
+
+	err := srv.ListenAndServeTLS("", "")
+	if err != nil {
 		panic(err)
 	}
 }

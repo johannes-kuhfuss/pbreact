@@ -11,7 +11,7 @@ import (
 type AppConfig struct {
 	Server struct {
 		Host     string `envconfig:"SERVER_HOST"`
-		Port     string `envconfig:"SERVER_PORT" default:"8080"`
+		Port     string `envconfig:"SERVER_PORT" default:"8443"`
 		Shutdown bool   `ignored:"true" default:"false"`
 	}
 	CertDomain string `envconfig:"CERT_DOMAIN"`
