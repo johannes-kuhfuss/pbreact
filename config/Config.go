@@ -11,11 +11,13 @@ import (
 type AppConfig struct {
 	Server struct {
 		Host     string `envconfig:"SERVER_HOST"`
-		Port     string `envconfig:"SERVER_PORT" default:"8443"`
+		Port     string `envconfig:"SERVER_PORT" default:"8080"`
+		TlsPort  string `envconfig:"SERVER_TLSPORT" default:"8443"`
 		Shutdown bool   `ignored:"true" default:"false"`
 	}
-	CertDomain string `envconfig:"CERT_DOMAIN"`
-	Gin        struct {
+	CertDomain   string `envconfig:"CERT_DOMAIN"`
+	InProduction bool   `envconfig:"IN_PRODUCTION" default:"true"`
+	Gin          struct {
 		Mode string `envconfig:"GIN_MODE" default:"release"`
 	}
 	RunTime struct {

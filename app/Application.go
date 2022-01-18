@@ -45,10 +45,9 @@ func mapUrls() {
 	cfg.RunTime.Router.GET("/tls", handler.TlsData)
 }
 
-func setupHttpServer() *http.Server {
-	listenAddr := fmt.Sprintf("%s:%s", cfg.Server.Host, cfg.Server.Port)
+func setupHttpServer(addr string) *http.Server {
 	return &http.Server{
-		Addr:         listenAddr,
+		Addr:         addr,
 		Handler:      cfg.RunTime.Router,
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 5 * time.Second,
@@ -57,27 +56,44 @@ func setupHttpServer() *http.Server {
 }
 
 func startRouter() {
-	var srv *http.Server
+	var httpsSrv *http.Server
+	var m *autocert.Manager
 
-	dataDir := "."
-	hostPolicy := func(ctx context.Context, host string) error {
-		allowedHost := cfg.CertDomain
-		if host == allowedHost {
-			return nil
+	if cfg.InProduction {
+		logger.Info("In production config")
+		dataDir := "."
+		hostPolicy := func(ctx context.Context, host string) error {
+			allowedHost := cfg.CertDomain
+			if host == allowedHost {
+				return nil
+			}
+			return fmt.Errorf("acme/autocert: only %s host is allowed", allowedHost)
 		}
-		return fmt.Errorf("acme/autocert: only %s host is allowed", allowedHost)
+
+		listenAddr := fmt.Sprintf("%s:%s", cfg.Server.Host, cfg.Server.TlsPort)
+		httpsSrv = setupHttpServer(listenAddr)
+		m = &autocert.Manager{
+			Prompt:     autocert.AcceptTOS,
+			Cache:      autocert.DirCache(dataDir),
+			HostPolicy: hostPolicy,
+		}
+
+		httpsSrv.TLSConfig = &tls.Config{GetCertificate: m.GetCertificate}
+
+		go func() {
+			err := httpsSrv.ListenAndServeTLS("", "")
+			if err != nil {
+				panic(err)
+			}
+		}()
 	}
 
-	srv = setupHttpServer()
-	m := &autocert.Manager{
-		Prompt:     autocert.AcceptTOS,
-		Cache:      autocert.DirCache(dataDir),
-		HostPolicy: hostPolicy,
+	listenAddr := fmt.Sprintf("%s:%s", cfg.Server.Host, cfg.Server.Port)
+	httpSrv := setupHttpServer(listenAddr)
+	if m != nil {
+		httpSrv.Handler = m.HTTPHandler(httpSrv.Handler)
 	}
-
-	srv.TLSConfig = &tls.Config{GetCertificate: m.GetCertificate}
-
-	err := srv.ListenAndServeTLS("", "")
+	err := httpSrv.ListenAndServe()
 	if err != nil {
 		panic(err)
 	}
