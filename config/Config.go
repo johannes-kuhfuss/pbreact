@@ -11,13 +11,13 @@ import (
 type AppConfig struct {
 	Server struct {
 		Host     string `envconfig:"SERVER_HOST"`
-		Port     string `envconfig:"SERVER_PORT" default:"80"`
-		TlsPort  string `envconfig:"SERVER_TLSPORT" default:"443"`
+		Port     string `envconfig:"SERVER_PORT" default:"8080"`
+		TlsPort  string `envconfig:"SERVER_TLSPORT" default:"8443"`
 		Shutdown bool   `ignored:"true" default:"false"`
+		CertFile string `envconfig:"CERT_FILE" default:"./cert/cert.pem"`
+		KeyFile  string `envconfig:"KEY_FILE" default:"./cert/cert.key"`
 	}
-	CertDomain   string `envconfig:"CERT_DOMAIN"`
-	InProduction bool   `envconfig:"IN_PRODUCTION" default:"true"`
-	Gin          struct {
+	Gin struct {
 		Mode string `envconfig:"GIN_MODE" default:"release"`
 	}
 	RunTime struct {

@@ -25,16 +25,17 @@ RUN go build -o /pbreact
 FROM alpine:latest
 
 WORKDIR /
+RUN mkdir -p /cert
+COPY ./cert.pem /cert/cert.pem
+COPY ./cert.key /cert/cert.key
 
 COPY --from=build /pbreact /pbreact
 
 RUN chmod +x /pbreact
 
-EXPOSE 80
 EXPOSE 8080
-EXPOSE 443
 EXPOSE 8443
 
-USER root:root
+USER nobody:nobody
 
 ENTRYPOINT ["/pbreact"]
