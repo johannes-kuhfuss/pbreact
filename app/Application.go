@@ -11,6 +11,7 @@ import (
 
 var (
 	cfg config.AppConfig
+	whh handler.WebHookHandler
 )
 
 func StartApp() {
@@ -20,6 +21,7 @@ func StartApp() {
 		panic(err)
 	}
 	initRouter()
+	wireApp()
 	mapUrls()
 	startRouter()
 	logger.Info("Application ended")
@@ -35,9 +37,15 @@ func initRouter() {
 	cfg.RunTime.Router = router
 }
 
+func wireApp() {
+	whh = handler.WebHookHandler{
+		Cfg: &cfg,
+	}
+}
+
 func mapUrls() {
 	cfg.RunTime.Router.GET("/ping", handler.Ping)
-	cfg.RunTime.Router.GET("/tls", handler.TlsData)
+	cfg.RunTime.Router.GET("/pbwebhook", whh.PbWebHook)
 }
 
 func startRouter() {
