@@ -25,13 +25,8 @@ func (whh *WebHookHandler) PbWhSubscription(c *gin.Context) {
 }
 
 func (whh *WebHookHandler) validateAuthKey(c *gin.Context) api_error.ApiErr {
-	authkey, exists := c.GetQuery("Authorization")
-	if !exists {
-		logger.Info("No auth key")
-		return nil
-	} else {
-		logger.Info(fmt.Sprintf("Auth key: %v", authkey))
-	}
+	authkey := c.GetHeader("Authorization")
+	logger.Info(fmt.Sprintf("Auth key: %v", authkey))
 	return nil
 }
 
