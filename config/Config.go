@@ -23,7 +23,7 @@ type AppConfig struct {
 	RunTime struct {
 		Router *gin.Engine
 	}
-	PbAuthKey string `envconfig:"PB_AUTH_KEY"`
+	PbAuthHeader string `envconfig:"PB_AUTH_HEADER"`
 }
 
 const (

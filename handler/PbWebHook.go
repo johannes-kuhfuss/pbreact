@@ -16,7 +16,7 @@ type WebHookHandler struct {
 func (whh *WebHookHandler) PbWhSubscription(c *gin.Context) {
 	err := whh.validateAuthKey(c)
 	if err != nil {
-		logger.Error("Invalid or missing authkey", err)
+		logger.Error("Could not handle subscription response", err)
 		c.JSON(err.StatusCode(), err)
 		return
 	}
@@ -25,8 +25,10 @@ func (whh *WebHookHandler) PbWhSubscription(c *gin.Context) {
 }
 
 func (whh *WebHookHandler) validateAuthKey(c *gin.Context) api_error.ApiErr {
-	authkey := c.GetHeader("Authorization")
-	logger.Info(fmt.Sprintf("Auth key: %v", authkey))
+	authKey := c.GetHeader("Authorization")
+	if authKey != whh.Cfg.PbAuthHeader {
+		return api_error.NewUnauthenticatedError("wrong or missing auth key")
+	}
 	return nil
 }
 
@@ -34,7 +36,7 @@ func (whh *WebHookHandler) PbWhEvents(c *gin.Context) {
 	var eventData = make(map[string]interface{})
 	err := whh.validateAuthKey(c)
 	if err != nil {
-		logger.Error("Invalid or missing authkey", err)
+		logger.Error("Could not handle event notification", err)
 		c.JSON(err.StatusCode(), err)
 		return
 	}
