@@ -1,7 +1,10 @@
 package app
 
 import (
+	"crypto/tls"
 	"fmt"
+	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/johannes-kuhfuss/pbreact/config"
@@ -23,7 +26,7 @@ func StartApp() {
 	initRouter()
 	wireApp()
 	mapUrls()
-	startRouter()
+	startServer()
 	logger.Info("Application ended")
 }
 
@@ -48,10 +51,33 @@ func mapUrls() {
 	cfg.RunTime.Router.GET("/pbwebhook", whh.PbWebHook)
 }
 
-func startRouter() {
+func startServer() {
+	tlsConfig := tls.Config{
+		CipherSuites: []uint16{
+			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+			tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+			tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
+			tls.TLS_RSA_WITH_AES_256_CBC_SHA,
+		},
+		PreferServerCipherSuites: true,
+		MinVersion:               tls.VersionTLS12,
+		CurvePreferences:         []tls.CurveID{tls.CurveP521, tls.CurveP384, tls.CurveP256},
+	}
 	listenAddr := fmt.Sprintf("%s:%s", cfg.Server.Host, cfg.Server.TlsPort)
+	server := http.Server{
+		Addr:              listenAddr,
+		Handler:           cfg.RunTime.Router,
+		TLSConfig:         &tlsConfig,
+		ReadTimeout:       5 * time.Second,
+		ReadHeaderTimeout: 0,
+		WriteTimeout:      5 * time.Second,
+		IdleTimeout:       120 * time.Second,
+		MaxHeaderBytes:    0,
+		TLSNextProto:      make(map[string]func(*http.Server, *tls.Conn, http.Handler)),
+		//ErrorLog:          &log.Logger{},
+	}
 	logger.Info(fmt.Sprintf("Listening on %v", listenAddr))
-	if err := cfg.RunTime.Router.RunTLS(listenAddr, cfg.Server.CertFile, cfg.Server.KeyFile); err != nil {
+	if err := server.ListenAndServeTLS(cfg.Server.CertFile, cfg.Server.KeyFile); err != nil {
 		logger.Error("Error while starting router", err)
 		panic(err)
 	}
