@@ -30,8 +30,8 @@ func StartApp() {
 	initServer()
 	wireApp()
 	mapUrls()
-	go startServer()
-	registerForNotif()
+	go registerForNotif()
+	startServer()
 	logger.Info("Application ended")
 }
 
@@ -95,6 +95,7 @@ func startServer() {
 }
 
 func registerForNotif() {
+	time.Sleep(10 * time.Second)
 	logger.Info("Registering for notifications")
 	err := pbApiService.RegisterForNotifications()
 	if err != nil {
