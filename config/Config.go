@@ -20,10 +20,15 @@ type AppConfig struct {
 	Gin struct {
 		Mode string `envconfig:"GIN_MODE" default:"release"`
 	}
-	RunTime struct {
-		Router *gin.Engine
+	PbApi struct {
+		ApiToken   string `envconfig:"API_TOKEN" required:"true"`
+		BaseUrl    string `envconfig:"PB_BASE_URL" default:"https://api.productboard.com/"`
+		WebHookUrl string `envconfig:"WEB_HOOK_URL" default:"https://jkuext.ddns.net/pbwebhook"`
 	}
-	PbAuthHeader string `envconfig:"PB_AUTH_HEADER"`
+	RunTime struct {
+		Router            *gin.Engine
+		CallbackAuthToken string
+	}
 }
 
 const (

@@ -27,7 +27,7 @@ func (whh *WebHookHandler) PbWhSubscription(c *gin.Context) {
 
 func (whh *WebHookHandler) validateAuthKey(c *gin.Context) api_error.ApiErr {
 	authKey := c.GetHeader("Authorization")
-	if authKey != whh.Cfg.PbAuthHeader {
+	if authKey != whh.Cfg.RunTime.CallbackAuthToken {
 		return api_error.NewUnauthenticatedError("wrong or missing auth key")
 	}
 	return nil
