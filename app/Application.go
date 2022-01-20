@@ -48,7 +48,8 @@ func wireApp() {
 
 func mapUrls() {
 	cfg.RunTime.Router.GET("/ping", handler.Ping)
-	cfg.RunTime.Router.GET("/pbwebhook", whh.PbWebHook)
+	cfg.RunTime.Router.GET("/pbwebhook", whh.PbWhSubscription)
+	cfg.RunTime.Router.POST("/pbwebhook", whh.PbWhEvents)
 }
 
 func startServer() {
