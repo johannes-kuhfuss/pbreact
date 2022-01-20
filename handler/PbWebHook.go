@@ -6,12 +6,14 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/johannes-kuhfuss/pbreact/config"
+	"github.com/johannes-kuhfuss/pbreact/service"
 	"github.com/johannes-kuhfuss/services_utils/api_error"
 	"github.com/johannes-kuhfuss/services_utils/logger"
 )
 
 type WebHookHandler struct {
-	Cfg *config.AppConfig
+	Cfg          *config.AppConfig
+	PbApiService *service.PbApiService
 }
 
 func (whh *WebHookHandler) PbWhSubscription(c *gin.Context) {
@@ -50,4 +52,14 @@ func (whh *WebHookHandler) PbWhEvents(c *gin.Context) {
 	log := fmt.Sprintf("Event data: %#v", eventData)
 	logger.Info(log)
 	c.JSON(http.StatusNoContent, nil)
+}
+
+func (whh *WebHookHandler) Register(c *gin.Context) {
+	err := whh.PbApiService.RegisterForNotifications()
+	if err != nil {
+		logger.Error("Could not register for event notification", err)
+		c.JSON(err.StatusCode(), err)
+		return
+	}
+	c.JSON(http.StatusOK, nil)
 }

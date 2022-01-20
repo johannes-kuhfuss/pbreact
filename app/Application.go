@@ -30,7 +30,6 @@ func StartApp() {
 	initServer()
 	wireApp()
 	mapUrls()
-	go registerForNotif()
 	startServer()
 	logger.Info("Application ended")
 }
@@ -73,16 +72,19 @@ func initServer() {
 }
 
 func wireApp() {
-	whh = handler.WebHookHandler{
-		Cfg: &cfg,
-	}
 	pbApiService = service.NewPbApiService(&cfg)
+	whh = handler.WebHookHandler{
+		Cfg:          &cfg,
+		PbApiService: &pbApiService,
+	}
+
 }
 
 func mapUrls() {
 	cfg.RunTime.Router.GET("/ping", handler.Ping)
 	cfg.RunTime.Router.GET("/pbwebhook", whh.PbWhSubscription)
 	cfg.RunTime.Router.POST("/pbwebhook", whh.PbWhEvents)
+	cfg.RunTime.Router.GET("/register", whh.Register)
 }
 
 func startServer() {
@@ -91,14 +93,5 @@ func startServer() {
 	if err := server.ListenAndServeTLS(cfg.Server.CertFile, cfg.Server.KeyFile); err != nil {
 		logger.Error("Error while starting router", err)
 		panic(err)
-	}
-}
-
-func registerForNotif() {
-	time.Sleep(10 * time.Second)
-	logger.Info("Registering for notifications")
-	err := pbApiService.RegisterForNotifications()
-	if err != nil {
-		logger.Error("Error while registering for notifications", err)
 	}
 }
