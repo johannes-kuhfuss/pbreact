@@ -2,6 +2,7 @@ package handler
 
 import (
 	"fmt"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/johannes-kuhfuss/pbreact/config"
@@ -48,5 +49,5 @@ func (whh *WebHookHandler) PbWhEvents(c *gin.Context) {
 	}
 	log := fmt.Sprintf("Event data: %#v", eventData)
 	logger.Info(log)
-	c.JSON(201, nil)
+	c.JSON(http.StatusNoContent, nil)
 }
