@@ -19,15 +19,12 @@ type PbApiServiceInterface interface {
 }
 
 type PbApiService struct {
-	Cfg        *config.AppConfig
-	HttpClient http.Client
+	Cfg *config.AppConfig
 }
 
 func NewPbApiService(cfg *config.AppConfig) PbApiService {
-	client := http.Client{}
 	return PbApiService{
-		Cfg:        cfg,
-		HttpClient: client}
+		Cfg: cfg}
 }
 
 func (as *PbApiService) RegisterForNotifications() api_error.ApiErr {
@@ -35,6 +32,7 @@ func (as *PbApiService) RegisterForNotifications() api_error.ApiErr {
 	if err != nil {
 		return err
 	}
+	logger.Info("Building request")
 	subReq := dto.PbSubscriptionRequest{
 		Data: dto.PbData{
 			Name: "Feature Webhooks",
@@ -58,6 +56,7 @@ func (as *PbApiService) RegisterForNotifications() api_error.ApiErr {
 		logger.Error(msg, err)
 		return api_error.NewInternalServerError(msg, err)
 	}
+	logger.Info("Building HTTP request")
 	subscriptionUrl, _ := url.Parse(as.Cfg.PbApi.BaseUrl + "webhooks")
 	req, reqErr := http.NewRequest("POST", subscriptionUrl.String(), bytes.NewBuffer(subReqJson))
 	if reqErr != nil {
@@ -65,13 +64,16 @@ func (as *PbApiService) RegisterForNotifications() api_error.ApiErr {
 		logger.Error(msg, reqErr)
 		return api_error.NewInternalServerError(msg, reqErr)
 	}
+	logger.Info("Adding headers to HTTP request")
 	authStr := fmt.Sprintf("Authorization Bearer %v", as.Cfg.PbApi.ApiToken)
 	req.Header = http.Header{
 		"X-Version":     []string{"1"},
 		"Content-Type":  []string{"application/json"},
 		"Authorization": []string{authStr},
 	}
-	_, resErr := as.HttpClient.Do(req)
+	logger.Info("Running HTTP request")
+	client := http.Client{}
+	_, resErr := client.Do(req)
 	if resErr != nil {
 		msg := "Error when trying to subscribe for notifications"
 		logger.Error(msg, reqErr)
@@ -81,6 +83,7 @@ func (as *PbApiService) RegisterForNotifications() api_error.ApiErr {
 }
 
 func (as *PbApiService) generateSessionApiToken() api_error.ApiErr {
+	logger.Info("Generating API callback token")
 	id, err := uuid.NewV4()
 	if err != nil {
 		msg := "Could not generate callback auth token"

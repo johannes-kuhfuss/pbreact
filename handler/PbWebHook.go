@@ -55,6 +55,7 @@ func (whh *WebHookHandler) PbWhEvents(c *gin.Context) {
 }
 
 func (whh *WebHookHandler) Register(c *gin.Context) {
+	logger.Info("Register invoked")
 	err := whh.PbApiService.RegisterForNotifications()
 	if err != nil {
 		logger.Error("Could not register for event notification", err)
