@@ -17,6 +17,7 @@ import (
 
 type PbApiServiceInterface interface {
 	RegisterForNotifications() api_error.ApiErr
+	UnregisterForNotifications() api_error.ApiErr
 }
 
 type PbApiService struct {
@@ -98,4 +99,65 @@ func (as *PbApiService) generateSessionApiToken() api_error.ApiErr {
 	}
 	as.Cfg.RunTime.CallbackAuthToken = id.String()
 	return nil
+}
+
+func (as *PbApiService) UnregisterForNotifications() api_error.ApiErr {
+	ids, err := as.GetAllNotifications()
+	if err != nil {
+		return err
+	}
+	for _, val := range *ids {
+		logger.Info(fmt.Sprintf("Id: %v", val))
+	}
+	return nil
+}
+
+func (as *PbApiService) GetAllNotifications() (*[]string, api_error.ApiErr) {
+	var pbResp dto.PbSubscriptionResponse
+	var ids []string
+	subscriptionUrl, _ := url.Parse(as.Cfg.PbApi.BaseUrl + "webhooks")
+	req, reqErr := http.NewRequest("GET", subscriptionUrl.String(), nil)
+	if reqErr != nil {
+		msg := "Could not create list subscription http request"
+		logger.Error(msg, reqErr)
+		return nil, api_error.NewInternalServerError(msg, reqErr)
+	}
+	authStr := fmt.Sprintf("Bearer %v", as.Cfg.PbApi.ApiToken)
+	req.Header = http.Header{
+		"X-Version":     []string{"1"},
+		"Authorization": []string{authStr},
+	}
+	client := http.Client{}
+	resp, resErr := client.Do(req)
+	if resErr != nil {
+		msg := "Error when trying to list subscriptions for notifications"
+		logger.Error(msg, reqErr)
+		return nil, api_error.NewInternalServerError(msg, reqErr)
+	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode > 299 {
+		msg := fmt.Sprintf("Error when sending list subscriptions request to API. Status code: %v. Message: %v", resp.StatusCode, string(body))
+		logger.Error(msg, nil)
+		return nil, api_error.NewInternalServerError(msg, nil)
+	} else {
+		logger.Info(fmt.Sprintf("Successfully listed subscriptions for notifications. Status code: %v", resp.StatusCode))
+	}
+
+	err := json.Unmarshal(body, &pbResp)
+	if err != nil {
+		msg := "Error parsing subscription list"
+		logger.Error(msg, err)
+		return nil, api_error.NewInternalServerError(msg, err)
+	}
+	for _, val := range pbResp.Data {
+		ids = append(ids, val.ID)
+	}
+
+	if len(ids) == 0 {
+		msg := "No subscriptions found"
+		logger.Error(msg, nil)
+		return nil, api_error.NewNotFoundError(msg)
+	}
+	return &ids, nil
 }

@@ -55,10 +55,19 @@ func (whh *WebHookHandler) PbWhEvents(c *gin.Context) {
 }
 
 func (whh *WebHookHandler) Register(c *gin.Context) {
-	logger.Info("Register invoked")
 	err := whh.PbApiService.RegisterForNotifications()
 	if err != nil {
-		logger.Error("Could not register for event notification", err)
+		logger.Error("Could not register for event notifications", err)
+		c.JSON(err.StatusCode(), err)
+		return
+	}
+	c.JSON(http.StatusOK, nil)
+}
+
+func (whh *WebHookHandler) Unregister(c *gin.Context) {
+	err := whh.PbApiService.UnregisterForNotifications()
+	if err != nil {
+		logger.Error("Could not unregister for event notifications", err)
 		c.JSON(err.StatusCode(), err)
 		return
 	}

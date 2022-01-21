@@ -85,6 +85,7 @@ func mapUrls() {
 	cfg.RunTime.Router.GET("/pbwebhook", whh.PbWhSubscription)
 	cfg.RunTime.Router.POST("/pbwebhook", whh.PbWhEvents)
 	cfg.RunTime.Router.GET("/register", whh.Register)
+	cfg.RunTime.Router.GET("/unregister", whh.Unregister)
 }
 
 func startServer() {
