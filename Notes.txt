@@ -1,6 +1,5 @@
-- Register for notifications on startup
--- Pb API key in config
--- generate secret, hand over to Pb on registration, save in runtime for comparison
+- Clean up code
+- Unit tests
 - Notif handler
 -- differentiate by event type
 -- implement Pb Api Get for features

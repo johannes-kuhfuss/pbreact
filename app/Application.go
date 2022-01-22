@@ -114,10 +114,8 @@ func RegisterForNotifications() {
 	logger.Info("Registering for notifications")
 	err := pbApiService.RegisterForNotifications()
 	if err != nil {
-		logger.Error("Could not register for notifications", err)
 		panic(err)
 	}
-	logger.Info("Successfully registered for notifications")
 }
 
 func startServer() {
