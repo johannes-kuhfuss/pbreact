@@ -1,9 +1,13 @@
 package app
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -18,6 +22,9 @@ var (
 	whh          handler.WebHookHandler
 	pbApiService service.PbApiService
 	server       http.Server
+	appEnd       chan os.Signal
+	ctx          context.Context
+	cancel       context.CancelFunc
 )
 
 func StartApp() {
@@ -30,9 +37,17 @@ func StartApp() {
 	initServer()
 	wireApp()
 	mapUrls()
+	RegisterForOsSignals()
 	go RegisterForNotifications()
-	startServer()
-	logger.Info("Application ended")
+	go startServer()
+	<-appEnd
+	cleanUp()
+	if srvErr := server.Shutdown(ctx); err != nil {
+		logger.Error("Graceful shutdown failed", srvErr)
+	} else {
+		logger.Info("Graceful shutdown finished")
+	}
+
 }
 
 func initRouter() {
@@ -89,20 +104,38 @@ func mapUrls() {
 	cfg.RunTime.Router.GET("/unregister", whh.Unregister)
 }
 
+func RegisterForOsSignals() {
+	appEnd = make(chan os.Signal, 1)
+	signal.Notify(appEnd, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+}
+
 func RegisterForNotifications() {
 	time.Sleep(10 * time.Second)
+	logger.Info("Registering for notifications")
 	err := pbApiService.RegisterForNotifications()
 	if err != nil {
 		logger.Error("Could not register for notifications", err)
 		panic(err)
 	}
+	logger.Info("Successfully registered for notifications")
 }
 
 func startServer() {
 	listenAddr := fmt.Sprintf("%s:%s", cfg.Server.Host, cfg.Server.TlsPort)
 	logger.Info(fmt.Sprintf("Listening on %v", listenAddr))
-	if err := server.ListenAndServeTLS(cfg.Server.CertFile, cfg.Server.KeyFile); err != nil {
+	if err := server.ListenAndServeTLS(cfg.Server.CertFile, cfg.Server.KeyFile); err != nil && err != http.ErrServerClosed {
 		logger.Error("Error while starting router", err)
 		panic(err)
 	}
+}
+
+func cleanUp() {
+	shutdownTime := time.Duration(cfg.GracefulShutdownTime) * time.Second
+	ctx, cancel = context.WithTimeout(context.Background(), shutdownTime)
+	defer func() {
+		logger.Info("Cleaning up")
+		pbApiService.UnregisterForNotifications()
+		logger.Info("Done cleaning up")
+		cancel()
+	}()
 }

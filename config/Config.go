@@ -13,7 +13,6 @@ type AppConfig struct {
 		Host     string `envconfig:"SERVER_HOST"`
 		Port     string `envconfig:"SERVER_PORT" default:"8080"`
 		TlsPort  string `envconfig:"SERVER_TLSPORT" default:"8443"`
-		Shutdown bool   `ignored:"true" default:"false"`
 		CertFile string `envconfig:"CERT_FILE" default:"./cert/cert.pem"`
 		KeyFile  string `envconfig:"KEY_FILE" default:"./cert/cert.key"`
 	}
@@ -25,7 +24,8 @@ type AppConfig struct {
 		BaseUrl    string `envconfig:"PB_BASE_URL" default:"https://api.productboard.com/"`
 		WebHookUrl string `envconfig:"WEB_HOOK_URL" default:"https://jkuext.ddns.net/pbwebhook"`
 	}
-	RunTime struct {
+	GracefulShutdownTime int `envconfig:"GRACEFUL_SHUTDOWN_TIME" default:"10"`
+	RunTime              struct {
 		Router            *gin.Engine
 		CallbackAuthToken string
 	}
@@ -49,7 +49,7 @@ func InitConfig(file string, config *AppConfig) api_error.ApiErr {
 func loadConfig(file string) error {
 	err := godotenv.Load(file)
 	if err != nil {
-		logger.Error("Could not open env file", err)
+		logger.Info("Could not open env file. Using environment variables and defaults")
 		return err
 	}
 	return nil

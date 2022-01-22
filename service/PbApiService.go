@@ -90,7 +90,6 @@ func (as *PbApiService) RegisterForNotifications() api_error.ApiErr {
 }
 
 func (as *PbApiService) generateSessionApiToken() api_error.ApiErr {
-	logger.Info("Generating API callback token")
 	id, err := uuid.NewV4()
 	if err != nil {
 		msg := "Could not generate callback auth token"
