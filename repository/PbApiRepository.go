@@ -25,6 +25,99 @@ func NewPbApiRepository(c *config.AppConfig) PbApiRepository {
 }
 
 func (r PbApiRepository) RegisterForNotifications() api_error.ApiErr {
+	subReq, err := r.CreateSubscriptionRequest()
+	if err != nil {
+		return err
+	}
+	req, err := r.PrepareHttpRequest("POST", "", bytes.NewBuffer(*subReq))
+	if err != nil {
+		return err
+	}
+	_, err = r.ExecHttpRequest(req)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r PbApiRepository) GetNotifications() (*dto.PbSubscriptionResponse, api_error.ApiErr) {
+	var pbResp dto.PbSubscriptionResponse
+
+	req, err := r.PrepareHttpRequest("GET", "", nil)
+	if err != nil {
+		return nil, err
+	}
+	body, err := r.ExecHttpRequest(req)
+	if err != nil {
+		return nil, err
+	}
+	jsonErr := json.Unmarshal(*body, &pbResp)
+	if jsonErr != nil {
+		msg := "Error parsing subscription list"
+		logger.Error(msg, err)
+		return nil, api_error.NewInternalServerError(msg, err)
+	}
+	if len(pbResp.Data) == 0 {
+		msg := "No subscriptions found"
+		logger.Error(msg, nil)
+		return nil, api_error.NewNotFoundError(msg)
+	}
+	return &pbResp, nil
+}
+
+func (r PbApiRepository) UnregisterForNotifications(notifs dto.PbSubscriptionResponse) api_error.ApiErr {
+	for _, val := range notifs.Data {
+		urlExt := fmt.Sprintf("/%v", val.ID)
+		req, err := r.PrepareHttpRequest("DELETE", urlExt, nil)
+		if err != nil {
+			return err
+		}
+		_, err = r.ExecHttpRequest(req)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (r PbApiRepository) PrepareHttpRequest(reqType string, UrlExt string, body io.Reader) (*http.Request, api_error.ApiErr) {
+	subscriptionUrl, _ := url.Parse(r.cfg.PbApi.BaseUrl + "webhooks" + UrlExt)
+	req, reqErr := http.NewRequest(reqType, subscriptionUrl.String(), body)
+	if reqErr != nil {
+		msg := "Could not create http request"
+		logger.Error(msg, reqErr)
+		return nil, api_error.NewInternalServerError(msg, reqErr)
+	}
+	authStr := fmt.Sprintf("Bearer %v", r.cfg.PbApi.ApiToken)
+	req.Header = http.Header{
+		"X-Version":     []string{"1"},
+		"Content-Type":  []string{"application/json"},
+		"Authorization": []string{authStr},
+	}
+	return req, nil
+}
+
+func (r PbApiRepository) ExecHttpRequest(req *http.Request) (*[]byte, api_error.ApiErr) {
+	client := http.Client{}
+	resp, resErr := client.Do(req)
+	if resErr != nil {
+		msg := "Error when executing http request"
+		logger.Error(msg, resErr)
+		return nil, api_error.NewInternalServerError(msg, resErr)
+	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode > 299 {
+		msg := fmt.Sprintf("Error when sending request to Productboard API. Status code: %v. Message: %v", resp.StatusCode, string(body))
+		logger.Error(msg, nil)
+		return nil, api_error.NewInternalServerError(msg, nil)
+	} else {
+		logger.Info(fmt.Sprintf("Successfully sent request to Productboard API. Status code: %v", resp.StatusCode))
+		return &body, nil
+	}
+}
+
+func (r PbApiRepository) CreateSubscriptionRequest() (*[]byte, api_error.ApiErr) {
 	subReq := dto.PbSubscriptionRequest{
 		Data: dto.SubReqData{
 			Name: "Feature Webhooks",
@@ -46,117 +139,7 @@ func (r PbApiRepository) RegisterForNotifications() api_error.ApiErr {
 	if reqErr != nil {
 		msg := "Could not generate subscription request"
 		logger.Error(msg, reqErr)
-		return api_error.NewInternalServerError(msg, reqErr)
-	}
-	subscriptionUrl, _ := url.Parse(r.cfg.PbApi.BaseUrl + "webhooks")
-	req, reqErr := http.NewRequest("POST", subscriptionUrl.String(), bytes.NewBuffer(subReqJson))
-	if reqErr != nil {
-		msg := "Could not create subscription http request"
-		logger.Error(msg, reqErr)
-		return api_error.NewInternalServerError(msg, reqErr)
-	}
-	authStr := fmt.Sprintf("Bearer %v", r.cfg.PbApi.ApiToken)
-	req.Header = http.Header{
-		"X-Version":     []string{"1"},
-		"Content-Type":  []string{"application/json"},
-		"Authorization": []string{authStr},
-	}
-	client := http.Client{}
-	resp, resErr := client.Do(req)
-	if resErr != nil {
-		msg := "Error when trying to subscribe for notifications"
-		logger.Error(msg, reqErr)
-		return api_error.NewInternalServerError(msg, reqErr)
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode > 299 {
-		body, _ := io.ReadAll(resp.Body)
-		msg := fmt.Sprintf("Error when sending registration request to API. Status code: %v. Message: %v", resp.StatusCode, string(body))
-		logger.Error(msg, nil)
-		return api_error.NewInternalServerError(msg, nil)
-	} else {
-		logger.Info(fmt.Sprintf("Successfully registered for notifications. Status code: %v", resp.StatusCode))
-	}
-	return nil
-}
-
-func (r PbApiRepository) GetNotifications() (*dto.PbSubscriptionResponse, api_error.ApiErr) {
-	var pbResp dto.PbSubscriptionResponse
-
-	subscriptionUrl, _ := url.Parse(r.cfg.PbApi.BaseUrl + "webhooks")
-	req, reqErr := http.NewRequest("GET", subscriptionUrl.String(), nil)
-	if reqErr != nil {
-		msg := "Could not create list subscription http request"
-		logger.Error(msg, reqErr)
 		return nil, api_error.NewInternalServerError(msg, reqErr)
 	}
-	authStr := fmt.Sprintf("Bearer %v", r.cfg.PbApi.ApiToken)
-	req.Header = http.Header{
-		"X-Version":     []string{"1"},
-		"Authorization": []string{authStr},
-	}
-	client := http.Client{}
-	resp, resErr := client.Do(req)
-	if resErr != nil {
-		msg := "Error when trying to list subscriptions for notifications"
-		logger.Error(msg, reqErr)
-		return nil, api_error.NewInternalServerError(msg, reqErr)
-	}
-	defer resp.Body.Close()
-	body, _ := io.ReadAll(resp.Body)
-	if resp.StatusCode > 299 {
-		msg := fmt.Sprintf("Error when sending list subscriptions request to API. Status code: %v. Message: %v", resp.StatusCode, string(body))
-		logger.Error(msg, nil)
-		return nil, api_error.NewInternalServerError(msg, nil)
-	} else {
-		logger.Info(fmt.Sprintf("Successfully listed subscriptions for notifications. Status code: %v", resp.StatusCode))
-	}
-
-	err := json.Unmarshal(body, &pbResp)
-	if err != nil {
-		msg := "Error parsing subscription list"
-		logger.Error(msg, err)
-		return nil, api_error.NewInternalServerError(msg, err)
-	}
-	if len(pbResp.Data) == 0 {
-		msg := "No subscriptions found"
-		logger.Error(msg, nil)
-		return nil, api_error.NewNotFoundError(msg)
-	}
-	return &pbResp, nil
-}
-
-func (r PbApiRepository) UnregisterForNotifications(notifs dto.PbSubscriptionResponse) api_error.ApiErr {
-	for _, val := range notifs.Data {
-		id := val.ID
-		subscriptionUrl, _ := url.Parse(r.cfg.PbApi.BaseUrl + "webhooks" + "/" + id)
-		req, reqErr := http.NewRequest("DELETE", subscriptionUrl.String(), nil)
-		if reqErr != nil {
-			msg := "Could not create delete subscription http request"
-			logger.Error(msg, reqErr)
-			return api_error.NewInternalServerError(msg, reqErr)
-		}
-		authStr := fmt.Sprintf("Bearer %v", r.cfg.PbApi.ApiToken)
-		req.Header = http.Header{
-			"X-Version":     []string{"1"},
-			"Authorization": []string{authStr},
-		}
-		client := http.Client{}
-		resp, resErr := client.Do(req)
-		if resErr != nil {
-			msg := "Error when trying to delete subscriptions for notifications"
-			logger.Error(msg, reqErr)
-			return api_error.NewInternalServerError(msg, reqErr)
-		}
-		defer resp.Body.Close()
-		body, _ := io.ReadAll(resp.Body)
-		if resp.StatusCode > 299 {
-			msg := fmt.Sprintf("Error when sending delete subscriptions request to API. Status code: %v. Message: %v", resp.StatusCode, string(body))
-			logger.Error(msg, nil)
-			return api_error.NewInternalServerError(msg, nil)
-		} else {
-			logger.Info(fmt.Sprintf("Successfully deleted subscriptions for notifications. Status code: %v", resp.StatusCode))
-		}
-	}
-	return nil
+	return &subReqJson, nil
 }

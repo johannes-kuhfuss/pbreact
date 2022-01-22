@@ -15,19 +15,18 @@ type PbApiServiceInterface interface {
 
 type PbApiService struct {
 	repo domain.PbApiRepository
-	Cfg  *config.AppConfig
+	cfg  *config.AppConfig
 }
 
-func NewPbApiService(cfg *config.AppConfig, repo domain.PbApiRepository) PbApiService {
+func NewPbApiService(c *config.AppConfig, r domain.PbApiRepository) PbApiService {
 	return PbApiService{
-		repo: repo,
-		Cfg:  cfg,
+		repo: r,
+		cfg:  c,
 	}
 }
 
 func (as *PbApiService) RegisterForNotifications() api_error.ApiErr {
-	var err api_error.ApiErr
-	err = as.generateSessionApiToken()
+	err := as.generateSessionApiToken()
 	if err != nil {
 		return err
 	}
@@ -45,7 +44,7 @@ func (as *PbApiService) generateSessionApiToken() api_error.ApiErr {
 		logger.Error(msg, err)
 		return api_error.NewInternalServerError(msg, err)
 	}
-	as.Cfg.RunTime.CallbackAuthToken = id.String()
+	as.cfg.RunTime.CallbackAuthToken = id.String()
 	return nil
 }
 

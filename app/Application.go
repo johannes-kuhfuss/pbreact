@@ -88,7 +88,6 @@ func initServer() {
 		IdleTimeout:       120 * time.Second,
 		MaxHeaderBytes:    0,
 		TLSNextProto:      make(map[string]func(*http.Server, *tls.Conn, http.Handler)),
-		//ErrorLog:          &log.Logger{},
 	}
 }
 
