@@ -30,6 +30,7 @@ func StartApp() {
 	initServer()
 	wireApp()
 	mapUrls()
+
 	startServer()
 	logger.Info("Application ended")
 }
@@ -86,6 +87,14 @@ func mapUrls() {
 	cfg.RunTime.Router.POST("/pbwebhook", whh.PbWhEvents)
 	cfg.RunTime.Router.GET("/register", whh.Register)
 	cfg.RunTime.Router.GET("/unregister", whh.Unregister)
+}
+
+func RegisterForNotifications() {
+	err := pbApiService.RegisterForNotifications()
+	if err != nil {
+		logger.Error("Could not register for notifications", err)
+		panic(err)
+	}
 }
 
 func startServer() {
