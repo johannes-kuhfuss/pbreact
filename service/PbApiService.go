@@ -184,15 +184,3 @@ func (as *PbApiService) GetNotifications() (*dto.PbSubscriptionResponse, api_err
 	}
 	return &pbResp, nil
 }
-
-/*
-	for _, val := range pbResp.Data {
-		ids = append(ids, val.ID)
-	}
-
-	if len(ids) == 0 {
-		msg := "No subscriptions found"
-		logger.Error(msg, nil)
-		return nil, api_error.NewNotFoundError(msg)
-	}
-*/
