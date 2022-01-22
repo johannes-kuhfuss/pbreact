@@ -8,24 +8,25 @@ import (
 	"github.com/johannes-kuhfuss/services_utils/logger"
 )
 
-type PbApiServiceInterface interface {
+//go:generate mockgen -destination=../mocks/service/mockPbApiService.go -package=service github.com/johannes-kuhfuss/pbreact/service PbApiService
+type PbApiService interface {
 	RegisterForNotifications() api_error.ApiErr
 	UnregisterForNotifications() api_error.ApiErr
 }
 
-type PbApiService struct {
+type DefaultPbApiService struct {
 	repo domain.PbApiRepository
 	cfg  *config.AppConfig
 }
 
-func NewPbApiService(c *config.AppConfig, r domain.PbApiRepository) PbApiService {
-	return PbApiService{
+func NewPbApiService(c *config.AppConfig, r domain.PbApiRepository) DefaultPbApiService {
+	return DefaultPbApiService{
 		repo: r,
 		cfg:  c,
 	}
 }
 
-func (as *PbApiService) RegisterForNotifications() api_error.ApiErr {
+func (as *DefaultPbApiService) RegisterForNotifications() api_error.ApiErr {
 	err := as.generateSessionApiToken()
 	if err != nil {
 		return err
@@ -37,7 +38,7 @@ func (as *PbApiService) RegisterForNotifications() api_error.ApiErr {
 	return nil
 }
 
-func (as *PbApiService) generateSessionApiToken() api_error.ApiErr {
+func (as *DefaultPbApiService) generateSessionApiToken() api_error.ApiErr {
 	id, err := uuid.NewV4()
 	if err != nil {
 		msg := "Could not generate callback auth token"
@@ -48,7 +49,7 @@ func (as *PbApiService) generateSessionApiToken() api_error.ApiErr {
 	return nil
 }
 
-func (as *PbApiService) UnregisterForNotifications() api_error.ApiErr {
+func (as *DefaultPbApiService) UnregisterForNotifications() api_error.ApiErr {
 	notifs, err := as.repo.GetNotifications()
 	if err != nil {
 		return err

@@ -22,7 +22,7 @@ import (
 var (
 	cfg          config.AppConfig
 	pbApiRepo    domain.PbApiRepository
-	pbApiService service.PbApiService
+	pbApiService service.DefaultPbApiService
 	pbApiHandler handler.WebHookHandler
 	server       http.Server
 	appEnd       chan os.Signal

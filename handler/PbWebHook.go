@@ -13,10 +13,10 @@ import (
 
 type WebHookHandler struct {
 	Cfg          *config.AppConfig
-	PbApiService *service.PbApiService
+	PbApiService *service.DefaultPbApiService
 }
 
-func NewWebHookHandler(cfg *config.AppConfig, service service.PbApiService) WebHookHandler {
+func NewWebHookHandler(cfg *config.AppConfig, service service.DefaultPbApiService) WebHookHandler {
 	return WebHookHandler{
 		Cfg:          cfg,
 		PbApiService: &service,
