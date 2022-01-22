@@ -16,6 +16,13 @@ type WebHookHandler struct {
 	PbApiService *service.PbApiService
 }
 
+func NewWebHookHandler(cfg *config.AppConfig, service service.PbApiService) WebHookHandler {
+	return WebHookHandler{
+		Cfg:          cfg,
+		PbApiService: &service,
+	}
+}
+
 func (whh *WebHookHandler) PbWhSubscription(c *gin.Context) {
 	err := whh.validateAuthKey(c)
 	if err != nil {
@@ -24,6 +31,7 @@ func (whh *WebHookHandler) PbWhSubscription(c *gin.Context) {
 		return
 	}
 	id, _ := c.GetQuery("validationToken")
+
 	c.String(200, id)
 }
 
@@ -37,6 +45,7 @@ func (whh *WebHookHandler) validateAuthKey(c *gin.Context) api_error.ApiErr {
 
 func (whh *WebHookHandler) PbWhEvents(c *gin.Context) {
 	var eventData = make(map[string]interface{})
+
 	err := whh.validateAuthKey(c)
 	if err != nil {
 		logger.Error("Could not handle event notification", err)
@@ -51,25 +60,6 @@ func (whh *WebHookHandler) PbWhEvents(c *gin.Context) {
 	}
 	log := fmt.Sprintf("Event data: %#v", eventData)
 	logger.Info(log)
+
 	c.JSON(http.StatusNoContent, nil)
-}
-
-func (whh *WebHookHandler) Register(c *gin.Context) {
-	err := whh.PbApiService.RegisterForNotifications()
-	if err != nil {
-		logger.Error("Could not register for event notifications", err)
-		c.JSON(err.StatusCode(), err)
-		return
-	}
-	c.JSON(http.StatusOK, nil)
-}
-
-func (whh *WebHookHandler) Unregister(c *gin.Context) {
-	err := whh.PbApiService.UnregisterForNotifications()
-	if err != nil {
-		logger.Error("Could not unregister for event notifications", err)
-		c.JSON(err.StatusCode(), err)
-		return
-	}
-	c.JSON(http.StatusOK, nil)
 }

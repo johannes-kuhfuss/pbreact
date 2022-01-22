@@ -12,15 +12,18 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/johannes-kuhfuss/pbreact/config"
+	"github.com/johannes-kuhfuss/pbreact/domain"
 	"github.com/johannes-kuhfuss/pbreact/handler"
+	"github.com/johannes-kuhfuss/pbreact/repository"
 	"github.com/johannes-kuhfuss/pbreact/service"
 	"github.com/johannes-kuhfuss/services_utils/logger"
 )
 
 var (
 	cfg          config.AppConfig
-	whh          handler.WebHookHandler
+	pbApiRepo    domain.PbApiRepository
 	pbApiService service.PbApiService
+	pbApiHandler handler.WebHookHandler
 	server       http.Server
 	appEnd       chan os.Signal
 	ctx          context.Context
@@ -29,6 +32,7 @@ var (
 
 func StartApp() {
 	logger.Info("Starting application")
+
 	err := config.InitConfig(config.EnvFile, &cfg)
 	if err != nil {
 		panic(err)
@@ -40,14 +44,15 @@ func StartApp() {
 	RegisterForOsSignals()
 	go RegisterForNotifications()
 	go startServer()
+
 	<-appEnd
 	cleanUp()
+
 	if srvErr := server.Shutdown(ctx); err != nil {
 		logger.Error("Graceful shutdown failed", srvErr)
 	} else {
 		logger.Info("Graceful shutdown finished")
 	}
-
 }
 
 func initRouter() {
@@ -88,20 +93,15 @@ func initServer() {
 }
 
 func wireApp() {
-	pbApiService = service.NewPbApiService(&cfg)
-	whh = handler.WebHookHandler{
-		Cfg:          &cfg,
-		PbApiService: &pbApiService,
-	}
-
+	pbApiRepo = repository.NewPbApiRepository(&cfg)
+	pbApiService = service.NewPbApiService(&cfg, pbApiRepo)
+	pbApiHandler = handler.NewWebHookHandler(&cfg, pbApiService)
 }
 
 func mapUrls() {
 	cfg.RunTime.Router.GET("/ping", handler.Ping)
-	cfg.RunTime.Router.GET("/pbwebhook", whh.PbWhSubscription)
-	cfg.RunTime.Router.POST("/pbwebhook", whh.PbWhEvents)
-	cfg.RunTime.Router.GET("/register", whh.Register)
-	cfg.RunTime.Router.GET("/unregister", whh.Unregister)
+	cfg.RunTime.Router.GET("/pbwebhook", pbApiHandler.PbWhSubscription)
+	cfg.RunTime.Router.POST("/pbwebhook", pbApiHandler.PbWhEvents)
 }
 
 func RegisterForOsSignals() {
