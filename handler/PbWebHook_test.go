@@ -16,6 +16,7 @@ var (
 	router      *gin.Engine
 	mockService *service.MockPbApiService
 	recorder    *httptest.ResponseRecorder
+	ctx         *gin.Context
 )
 
 func setupTest(t *testing.T) func() {
@@ -23,9 +24,16 @@ func setupTest(t *testing.T) func() {
 	mockService := service.NewMockPbApiService(ctrl)
 	whh = NewWebHookHandler(&cfg, mockService)
 	router = gin.Default()
+	gin.SetMode(gin.TestMode)
 	recorder = httptest.NewRecorder()
+	ctx, _ = gin.CreateTestContext(recorder)
 	return func() {
 		router = nil
 		ctrl.Finish()
 	}
+}
+
+func Test_PbWhSubscription_NoAuthKey_Returns_UnauthenticatedError(t *testing.T) {
+	teardown := setupTest(t)
+	defer teardown()
 }
