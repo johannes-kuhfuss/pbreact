@@ -26,7 +26,7 @@ func NewPbApiService(c *config.AppConfig, r domain.PbApiRepository) DefaultPbApi
 	}
 }
 
-func (as *DefaultPbApiService) RegisterForNotifications() api_error.ApiErr {
+func (as DefaultPbApiService) RegisterForNotifications() api_error.ApiErr {
 	err := as.generateSessionApiToken()
 	if err != nil {
 		return err
@@ -38,7 +38,7 @@ func (as *DefaultPbApiService) RegisterForNotifications() api_error.ApiErr {
 	return nil
 }
 
-func (as *DefaultPbApiService) generateSessionApiToken() api_error.ApiErr {
+func (as DefaultPbApiService) generateSessionApiToken() api_error.ApiErr {
 	id, err := uuid.NewV4()
 	if err != nil {
 		msg := "Could not generate callback auth token"
@@ -49,7 +49,7 @@ func (as *DefaultPbApiService) generateSessionApiToken() api_error.ApiErr {
 	return nil
 }
 
-func (as *DefaultPbApiService) UnregisterForNotifications() api_error.ApiErr {
+func (as DefaultPbApiService) UnregisterForNotifications() api_error.ApiErr {
 	notifs, err := as.repo.GetNotifications()
 	if err != nil {
 		return err
