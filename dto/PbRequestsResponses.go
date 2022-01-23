@@ -19,7 +19,7 @@ type PbSubscriptionResponse struct {
 	Links Links         `json:"links"`
 }
 
-type EventNotification struct {
+type PbEventNotification struct {
 	Data EventData `json:"data"`
 }
 

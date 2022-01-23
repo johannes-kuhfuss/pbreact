@@ -1,11 +1,11 @@
 package handler
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/johannes-kuhfuss/pbreact/config"
+	"github.com/johannes-kuhfuss/pbreact/dto"
 	"github.com/johannes-kuhfuss/pbreact/service"
 	"github.com/johannes-kuhfuss/services_utils/api_error"
 	"github.com/johannes-kuhfuss/services_utils/logger"
@@ -49,7 +49,7 @@ func (whh *WebHookHandler) validateAuthKey(c *gin.Context) api_error.ApiErr {
 }
 
 func (whh *WebHookHandler) PbWhEvents(c *gin.Context) {
-	var eventData = make(map[string]interface{})
+	var eventData = dto.PbEventNotification{}
 
 	err := whh.validateAuthKey(c)
 	if err != nil {
@@ -63,13 +63,5 @@ func (whh *WebHookHandler) PbWhEvents(c *gin.Context) {
 		c.JSON(apiErr.StatusCode(), apiErr)
 		return
 	}
-	bodyBytes, rErr := c.GetRawData()
-	if rErr != nil {
-		logger.Error("Error:", rErr)
-	}
-	bodyString := string(bodyBytes)
-	log := fmt.Sprintf("Event data: %v", bodyString)
-	logger.Info(log)
-
 	c.JSON(http.StatusNoContent, nil)
 }
