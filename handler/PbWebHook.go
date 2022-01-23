@@ -64,7 +64,10 @@ func (whh *WebHookHandler) PbWhEvents(c *gin.Context) {
 		c.JSON(apiErr.StatusCode(), apiErr)
 		return
 	}
-	bodyBytes, _ := io.ReadAll(c.Request.Body)
+	bodyBytes, rErr := io.ReadAll(c.Request.Body)
+	if rErr != nil {
+		logger.Error("Error:", rErr)
+	}
 	bodyString := string(bodyBytes)
 	log := fmt.Sprintf("Event data: %v", bodyString)
 	logger.Info(log)
