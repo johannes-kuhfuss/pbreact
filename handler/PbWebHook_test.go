@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gofrs/uuid"
 	"github.com/golang/mock/gomock"
 	"github.com/johannes-kuhfuss/pbreact/config"
+	"github.com/johannes-kuhfuss/pbreact/dto"
 	"github.com/johannes-kuhfuss/pbreact/mocks/service"
 	"github.com/johannes-kuhfuss/services_utils/api_error"
 	"github.com/stretchr/testify/assert"
@@ -114,4 +116,25 @@ func Test_PbWhEvents_InvalidBody_Returns_BadRequestError(t *testing.T) {
 
 	assert.EqualValues(t, apiError.StatusCode(), recorder.Code)
 	assert.EqualValues(t, errorJson, recorder.Body.String())
+}
+
+func Test_PbWhEvents_ValidEvent_Returns_StatusNoContent(t *testing.T) {
+	teardown := setupTest(t)
+	defer teardown()
+	authKey, _ := uuid.NewV4()
+	cfg.RunTime.CallbackAuthToken = authKey.String()
+	eventData := dto.SubReqData{
+		Name:         "Req",
+		Events:       []dto.Events{},
+		Notification: dto.Notification{},
+	}
+	eventJson, _ := json.Marshal(eventData)
+	router.POST("/pbwebhook", whh.PbWhEvents)
+	req, _ := http.NewRequest(http.MethodPost, "/pbwebhook", strings.NewReader(string(eventJson)))
+	req.Header.Set("Authorization", authKey.String())
+
+	router.ServeHTTP(recorder, req)
+
+	assert.EqualValues(t, http.StatusNoContent, recorder.Code)
+	assert.EqualValues(t, "", recorder.Body.String())
 }
