@@ -30,15 +30,20 @@ func (whh *WebHookHandler) PbWhSubscription(c *gin.Context) {
 		c.JSON(err.StatusCode(), err)
 		return
 	}
-	id, _ := c.GetQuery("validationToken")
-
+	id, exists := c.GetQuery("validationToken")
+	if !exists {
+		msg := "Could not find validation token"
+		err := api_error.NewBadRequestError(msg)
+		logger.Error(msg, nil)
+		c.JSON(err.StatusCode(), err)
+	}
 	c.String(200, id)
 }
 
 func (whh *WebHookHandler) validateAuthKey(c *gin.Context) api_error.ApiErr {
 	authKey := c.GetHeader("Authorization")
-	if authKey != whh.Cfg.RunTime.CallbackAuthToken {
-		return api_error.NewUnauthenticatedError("wrong or missing auth key")
+	if (authKey == "") || (authKey != whh.Cfg.RunTime.CallbackAuthToken) {
+		return api_error.NewUnauthenticatedError("Wrong or missing auth key")
 	}
 	return nil
 }
@@ -53,8 +58,8 @@ func (whh *WebHookHandler) PbWhEvents(c *gin.Context) {
 		return
 	}
 	if err := c.ShouldBindJSON(&eventData); err != nil {
-		logger.Error("invalid JSON body in event notification", err)
-		apiErr := api_error.NewBadRequestError("invalid json body")
+		logger.Error("Invalid JSON body in event notification", err)
+		apiErr := api_error.NewBadRequestError("Invalid json body")
 		c.JSON(apiErr.StatusCode(), apiErr)
 		return
 	}
