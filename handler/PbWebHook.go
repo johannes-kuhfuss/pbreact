@@ -2,6 +2,7 @@ package handler
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -63,7 +64,8 @@ func (whh *WebHookHandler) PbWhEvents(c *gin.Context) {
 		c.JSON(apiErr.StatusCode(), apiErr)
 		return
 	}
-	log := fmt.Sprintf("Event data: %v", eventData)
+	jsonData, _ := ioutil.ReadAll(c.Request.Body)
+	log := fmt.Sprintf("Event data: %v", jsonData)
 	logger.Info(log)
 
 	c.JSON(http.StatusNoContent, nil)
