@@ -63,7 +63,7 @@ func (whh *WebHookHandler) PbWhEvents(c *gin.Context) {
 		c.JSON(apiErr.StatusCode(), apiErr)
 		return
 	}
-	log := fmt.Sprintf("Event data: %#v", eventData)
+	log := fmt.Sprintf("Event data: %v", eventData)
 	logger.Info(log)
 
 	c.JSON(http.StatusNoContent, nil)
