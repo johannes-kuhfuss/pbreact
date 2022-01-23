@@ -19,6 +19,10 @@ type PbSubscriptionResponse struct {
 	Links Links         `json:"links"`
 }
 
+type EventNotification struct {
+	Data EventData `json:"data"`
+}
+
 type Events struct {
 	EventType string `json:"eventType"`
 }
@@ -45,4 +49,14 @@ type SubRespData struct {
 }
 type Links struct {
 	Next interface{} `json:"next"`
+}
+
+type EventData struct {
+	ID        string     `json:"id"`
+	EventType string     `json:"eventType"`
+	Links     EventLinks `json:"links"`
+}
+
+type EventLinks struct {
+	Target string `json:"target"`
 }
