@@ -34,6 +34,20 @@ func (m *MockPbApiService) EXPECT() *MockPbApiServiceMockRecorder {
 	return m.recorder
 }
 
+// GenerateSessionApiToken mocks base method.
+func (m *MockPbApiService) GenerateSessionApiToken() api_error.ApiErr {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GenerateSessionApiToken")
+	ret0, _ := ret[0].(api_error.ApiErr)
+	return ret0
+}
+
+// GenerateSessionApiToken indicates an expected call of GenerateSessionApiToken.
+func (mr *MockPbApiServiceMockRecorder) GenerateSessionApiToken() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateSessionApiToken", reflect.TypeOf((*MockPbApiService)(nil).GenerateSessionApiToken))
+}
+
 // RegisterForNotifications mocks base method.
 func (m *MockPbApiService) RegisterForNotifications() api_error.ApiErr {
 	m.ctrl.T.Helper()

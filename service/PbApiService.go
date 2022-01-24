@@ -12,6 +12,7 @@ import (
 type PbApiService interface {
 	RegisterForNotifications() api_error.ApiErr
 	UnregisterForNotifications() api_error.ApiErr
+	GenerateSessionApiToken() api_error.ApiErr
 }
 
 type DefaultPbApiService struct {
@@ -27,7 +28,7 @@ func NewPbApiService(c *config.AppConfig, r domain.PbApiRepository) DefaultPbApi
 }
 
 func (as DefaultPbApiService) RegisterForNotifications() api_error.ApiErr {
-	err := as.generateSessionApiToken()
+	err := as.GenerateSessionApiToken()
 	if err != nil {
 		return err
 	}
@@ -38,7 +39,7 @@ func (as DefaultPbApiService) RegisterForNotifications() api_error.ApiErr {
 	return nil
 }
 
-func (as DefaultPbApiService) generateSessionApiToken() api_error.ApiErr {
+func (as DefaultPbApiService) GenerateSessionApiToken() api_error.ApiErr {
 	id, err := uuid.NewV4()
 	if err != nil {
 		msg := "Could not generate callback auth token"
