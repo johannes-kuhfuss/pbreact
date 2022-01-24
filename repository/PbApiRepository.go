@@ -81,6 +81,11 @@ func (r PbApiRepository) UnregisterForNotifications(notifs dto.PbSubscriptionRes
 }
 
 func (r PbApiRepository) PrepareHttpRequest(reqType string, UrlExt string, body io.Reader) (*http.Request, api_error.ApiErr) {
+	if reqType == "" {
+		msg := "Request type cannot be empty"
+		logger.Error(msg, nil)
+		return nil, api_error.NewInternalServerError(msg, nil)
+	}
 	subscriptionUrl, _ := url.Parse(r.cfg.PbApi.BaseUrl + "webhooks" + UrlExt)
 	req, reqErr := http.NewRequest(reqType, subscriptionUrl.String(), body)
 	if reqErr != nil {
