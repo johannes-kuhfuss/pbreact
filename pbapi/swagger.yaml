@@ -1,0 +1,2450 @@
+openapi: 3.0.1
+info:
+  title: Productboard API Reference
+  contact:
+    name: Learn Public API Beta Slack Channel
+  description: |
+    # Introduction
+
+    This is an API for pushing feedback to [Productboard](https://www.productboard.com/) and for accessing the data stored inside.
+
+
+    # Base URL
+
+    Base URL for all API requests is `https://api.productboard.com/`.
+
+    For example `https://api.productboard.com/features` is the endpoint for listing of features.
+
+
+    # Authentication
+
+    Access to the API is granted via a [JWT token](https://en.wikipedia.org/wiki/JSON_Web_Token).
+
+
+    ## Getting a token
+
+    + Log in to the Productboard application in your favorite web browser.
+    + Go to **Workspace Settings** > **Integrations** > **Public API** > **Access Token**.
+        - If you don't see that section in the application, your space will be probably only on **Essentials** plan, please upgrade to at least **Pro**.
+        - Available features in each plan and their naming may change in the future, please consult [Productboard pricing](https://www.productboard.com/pricing/) in such case.
+    + Click **+** to generate a new token.
+
+    ![How to create a new access token](img/access-token.png)
+
+
+    ## Using the token
+
+    Insert the following header into each request, replacing `<your-token>` with your token:
+
+    ```
+    Authorization: Bearer <your-token>
+    ```
+
+    <!-- ReDoc-Inject: <security-definitions> -->
+
+
+    # Rate Limiting
+
+    This API is rate limited. If any of the limits configured is being reached, the service will return status code `429 Too Many Requests` to the client. Responses for all rate limitted endpoints will also contain [some additional headers](https://docs.konghq.com/hub/kong-inc/rate-limiting/#headers-sent-to-the-client) telling what are the limits allowed, how many requests are available and how long it will take until the quota will be restored.
+
+
+    # Partners
+
+    If your service integrates with Productboard and you want to take credits, you can simply add `Productboard-Partner-Id` header with your unique partner ID to the appropriate requests.
+
+    Please ask your Productboard representative to create or revoke your partner ID.
+
+
+    # Versioning and compatibility
+
+    We will try to maintain backward and future compatibility as much as we can. Nevertheless, in case we will need to introduce
+    a backward incompatible change, we will release a new version of the API. The client MUST specify version using
+    `X-Version` header (currently the only supported value is `1`).
+
+    ## Requirements on the consumer
+    We want to evolve the API without unnecessary versioning. To be able to do that, the consumer should
+
+    1. Use some standard JSON parsing library that does not care about the order of elements.
+    2. Ignore unknown elements in the response or in callback payloads. This allows us to extend the API by adding new fields.
+
+    ## Changelog
+
+    ### 2021-10-19
+    - Feature creation added to Features API.
+    - Products and components added to Features API, only raw listing of the entities to unblock creation of features for now. Rich hierarchy API with links among entities, filtering and expansions while listing, etc. will be added in the future. We will appreciate feedback with description of your use cases.
+
+    ### 2021-09-21
+    - `timeframe` added to features in Features API - listing, updating and webhook notifications.
+    - Jira integrations and connections API added
+
+    ### 2021-07-26
+    - `archived` flag added to features in Features API - listing, filtering, updating and webhook notifications.
+
+    ### 2021-05-19
+    - Removed **beta** flag from all parts of Features API, first public release.
+
+    ### 2021-05-03
+    - Added `links` to plugin integration responses
+    - Support for `title` attribute in `img` tag in Feature description HTML
+
+    ### 2021-04-29
+    - Introduced `feature.created` webhook event type - We have started distinguishing `feature.updated` and `feature.created` webhook events. Existing webhooks subscribed on `feature.updated` will be notified only in case of feature update. If you want to be notified when a feature is created, you have to update your subscriptions.
+
+    ### 2021-04-28
+    - Added support for HTML format in Feature description.
+
+      This is the first phase of decomissioning the original, Markdown-like format. The whole process is planned as follows:
+      1. **2021-04-28**: HTML format support has been added to the API. Where applicable, it is now possible to use a query parameter `descriptionFormat=html` to opt in for the new format. This change is backward-compatible as the API will fall back to the original Markdown-like format in the absence of said parameter.
+      2. **2021-05-10**: The default format will be switched to the new, HTML-based one. Where applicable, it will be possible to use a query parameter `descriptionFormat=markdown` to opt out and still receive the original format. In the absence of the parameter, the API will now default to HTML. This is a breaking change and will require all consumers to either be already migrated to support the new format _or_ make use of the opt out mechanism to buy themselves some more time.
+      3. **2021-05-17**: The original, Markdown-like format will be removed from the API for good together with the `descriptionFormat` query parameter, making the HTML the only description format available on the API.
+
+    ### 2021-04-27
+    - Added `debugDetail` to [Plugin integration connection](/#operation/getPluginIntegrationConnection) of type `error`. If a push action fails within Productboard during response processing, this attribute can be examined by using the API to find out the cause of the failure.
+
+    ### 2021-03-30
+    - Added `triggeredByUser` to plugin integration action notification
+
+    ### 2021-03-30
+    - Feature status can be set by name
+
+    ### 2021-03-22
+    - Subfeature parent added to Features API
+
+    ### 2021-03-10
+    - Links added to features payload.
+
+    ### 2021-01-29
+    - Introduced initial support for retrieving and updating basic features data.
+    - It is still only a private beta for selected partners and customers to get feedback before making it globally available.
+
+    ### 2020-12-01
+    - Added optional `Productboard-Partner-Id` header to `/notes` endpoint.
+
+    ### 2020-06-24
+    - Initial API specification.
+
+
+    # Feedback
+
+    We will be happy to hear your feedback, do not hesitate to send us your feedback.
+
+    - [Public APIs in general](https://portal.productboard.com/pb/1-productboard-portal/c/119-public-apis)
+    - [Features API](https://portal.productboard.com/pb/1-productboard-portal/c/314-public-api-features)
+    - [Notes API](https://portal.productboard.com/pb/1-productboard-portal/c/308-insights-public-api)
+  version: '1'
+  x-logo:
+    url: 'https://cdn.productboard.com/nucleus/logos/productboard-logo-full.svg'
+    backgroundColor: '#F7F9FA'
+    altText: Productboard logo
+servers:
+  - description: Productboard API Reference
+    url: 'https://api.productboard.com'
+tags:
+  - name: Notes
+  - name: features
+    x-displayName: Features
+  - name: components
+    x-displayName: Components
+  - name: products
+    x-displayName: Products
+  - name: statuses
+    x-displayName: Feature statuses
+  - name: webhooks
+    x-displayName: Webhooks
+    description: |
+      ## Getting started
+
+      The following steps are neccessary to be able to successfuly receive the webhook notifications.
+
+      - Subscribe to an event type you are interested in and define URL where your system will be listening for the notifications.
+        - Part of the subcription process is an active probe for basic verification of the destination URL.
+      - Handle and confirm incoming webhook notifications.
+        - Use entity ID or URL that are present in the notification to query the latest state of that entity from Productboard.
+        - Full authentication is required to get the sensitive customer data the same as during any other API request.
+      - Optionaly delete the subscription if you are no longer interested in these notifications.
+
+
+      ## Tips & tricks
+
+      The first steps with webhooks may be quite tricky due to the requirement of public IP address, valid HTTPS certificate and especially the subscription probe. You can consider to use a public service like https://webhook.site/ for inspection of the incoming requests. This one also allows you to define a default response for all incoming requests which is handy to successfully pass the subscription probe. Just click the `Edit` button at the top right of the screen and enter `$request.query.validationtoken$` as the response body (lower case `t` in `validationtoken` is correct).
+
+      An alternative may be service https://ngrok.com/ that offers a public URL/IP with a valid HTTPS certificate. It is able to route all incoming requests to your machine in a private network which is really handy during development.
+
+      **In any case, be very careful about data security when using such publicly accessible services. Always send there only artificial data for development and testing - you never know, who will be able to access them.**
+
+
+      ## Firewall
+
+      Please whitelist the following static IP addresses with port 443 on your firewall to be able to receive webhook notifications from Productboard infrastructure.
+
+      - 100.25.97.81
+      - 35.174.223.66
+      - 52.6.23.216
+
+      ## Notification delivery
+
+      Once a webhook-triggering event occurs, a task is scheduled for immediate execution to deliver the corresponding notification. Once picked by the notification delivery system, the task is executed, sending a HTTP request to the target URL.
+
+      ### Error handling
+
+      There are, however, many things that can go wrong even before such a request reaches its destination (e.g. DNS resolution error, sudden network failure, etc.) and even if it does, the target system may not be always able to correctly process the request. This is why the notification delivery system is built to handle such failures.
+
+      Our implementation of webhook notification sender follows the best practices defined by [RestHooks](https://resthooks.org/docs/retries/) and uses response status as the primary metric for determining whether a request has been successful or not.
+      - `200`, `201`, `204` and other `2XX` codes: The request is considered successful and the notification is considered as delivered, no retry is needed.
+      - Any other response status or error (such as connection error, timeout, etc.) is handled as an unsuccessful delivery attempt and the task is rescheduled for later.
+
+      Please note that we __do not__ follow redirects and as such any response status in the `3XX` range is understood as a failure. To avoid any potential issues, make sure to use the actual URL of your endpoint when subscribing for webhook notifications.
+
+      ### Retries
+
+      If a notification delivery task fails, it gets rescheduled for later. We use exponential backoff strategy to determine for how long to wait before trying again. The table below shows the wait interval for each failed delivery attempt:
+
+      | No. of failed attempts | Next wait time |
+      |------------------------|----------------|
+      | 1                      | 1 m            |
+      | 2                      | 3 m            |
+      | 3                      | 9 m            |
+      | 4                      | 27 m           |
+      | 5                      | 1.35 h         |
+      | 6                      | 4.05 h         |
+      | 7                      | 12.15 h        |
+      | 8                      | 36.45 h        |
+
+      If the delivery fails more than eight times in succession, the task will get removed and the notification will be lost.
+  - name: pluginIntegrations
+    x-displayName: Plugin integrations
+    description: |
+      Plugin integrations allow you to add a column to Productboard Feature board which will allow integration with a generic third-party system. A typical use case is a push of the feature to a ticketing system like Jira. This API is to be used for systems which are not supported by Productboard out of the box or for use-case that are not yet supported by the built-in integrations. The flow is following:
+      1. Integration partner creates new column in Productboard by creating a Plugin integration through this API. Besides other data, the partner specifies which endpoint should be called when user clicks on a Push Button in Productboard UI.
+      2. When the column is added to a Features board, users can click on the Push button and when they do, the endpoint specified in the integration is called.
+      3. The endpoint returns new status of the Push button so the Push button can change its apearance to a link to the third party system. This state is called Connection.
+      4. The third-party system can change the Connection later using the Connection API.
+      5. In the future we plan to support unlinking flow from Productbaord UI. The flow will be similar: when the user clicks on the Unlink button, the third-party system will be notified through the endpoint specified in the Plugin integration.
+  - name: pluginIntegrationConnections
+    x-displayName: Plugin integration connections
+    description: |
+      Once a Plugin integration is set up, it can be used to interact with the configured 3rd party system. This interaction has a form of clicking a "push button" on a Features board. This, in general, notifies the 3rd party system about a user's intention to send feature data from Productboard to that system for processing. The most common use case for this is to bind Productboard feature to some other entity in another system (e.g. a GitLab issue). A result of this operation is what we call _Plugin integration connection_ and it represents a single link between Productboard feature and some other entity.
+
+      There are two ways of creating such a connection:
+        1. via Productboard UI by clicking a push button
+        2. via this API
+
+      The only difference between these two options is in who initiates the operation. The UI gives a Productboard user the ability to create a connection while on the other hand, the API gives the 3rd party system a way of creating a connection on its own.
+
+      Note that while we call this thing a "connection", it _does not_ mean that every push action necessarily has to bind a feture to some other entity. A "connection" can represent whatever you see fit, as long as it makes sense in both Productboard and the other system.
+  - name: jiraIntegrations
+    x-displayName: Jira integrations
+    description: |
+      Jira integrations endpoint allows you to list all configured Jira integrations. Its main purpose is to allow the client to find Jira integration ID and then retrieve connections between Productboard features and Jira issues.
+  - name: jiraIntegrationConnections
+    x-displayName: Jira integration connections
+    description: |
+      A Jira integration connection represents a link between a Productboard feature and a Jira issue. Using this endpoint you can retrieve which Productboard features are linked with Jira.
+x-tagGroups:
+  - name: Push feedback to Productboard
+    tags:
+      - Notes
+  - name: Features
+    tags:
+      - features
+      - components
+      - products
+      - statuses
+  - name: Webhook notifications
+    tags:
+      - webhooks
+  - name: Plugin integrations
+    tags:
+      - pluginIntegrations
+      - pluginIntegrationConnections
+  - name: JIRA integrations
+    tags:
+      - jiraIntegrations
+      - jiraIntegrationConnections
+paths:
+  /notes:
+    post:
+      summary: Create a Note
+      description: Creates a new note in Productboard
+      operationId: create_note
+      tags:
+        - Notes
+      responses:
+        '201':
+          description: Note created
+          content:
+            application/json; charset=utf-8:
+              schema:
+                type: object
+                properties:
+                  links:
+                    type: object
+                    properties:
+                      html:
+                        allOf:
+                          - $ref: '#/components/schemas/URL'
+                        example: 'https://space.productboard.com/inbox/notes/123456'
+                        description: Note is accessible via this URL in the Productboard application
+                  data:
+                    $ref: '#/components/schemas/Note'
+        '422':
+          description: |
+            One of the following:
+            + `source` already exists
+            + `display_url` is not a properly formatted url
+          content:
+            application/json; charset=utf-8:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: false
+                  errors:
+                    type: object
+                    properties:
+                      source:
+                        type: array
+                        items:
+                          type: string
+                          example: already exists
+                required:
+                  - ok
+        '429':
+          $ref: '#/components/responses/RateLimited'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Note'
+        description: Note to add
+      parameters:
+        - $ref: '#/components/parameters/Productboard-Partner-Id'
+  /features:
+    get:
+      summary: List all features
+      description: |
+        Returns detail of all features and subfeatures.
+
+        This API is paginated, only the first 100 items are returned by default. The client should then recursively follow `links.next` link in the response to fetch the next page.
+      operationId: getFeatures
+      tags:
+        - features
+      parameters:
+        - name: X-Version
+          description: API version.
+          in: header
+          required: true
+          schema:
+            type: integer
+            enum:
+              - 1
+          example: 1
+        - name: pageLimit
+          in: query
+          required: false
+          description: Page limit.
+          allowEmptyValue: true
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 100
+            default: 100
+        - name: pageOffset
+          in: query
+          required: false
+          description: Page offset.
+          allowEmptyValue: true
+          schema:
+            type: integer
+            format: int32
+            minimum: 0
+            default: 0
+        - in: query
+          name: status.id
+          required: false
+          description: 'If specified, the resource returns only features in status with given ID. If both `status.id` and `status.name` are specified, only features that fulfill both criteria are returned.'
+          schema:
+            type: string
+            format: uuid
+            description: Entity identifier.
+            example: 00000000-0000-0000-0000-000000000000
+        - in: query
+          name: status.name
+          required: false
+          description: 'If specified, the resource returns only features in status with given name. If both `status.id` and `status.name` are specified, only features that fulfill both criteria are returned.'
+          schema:
+            type: string
+        - in: query
+          name: archived
+          required: false
+          description: 'If specified, the resource returns only features with `archived` flag matching provided value.'
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: 'Success, the response contains valid data.'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                  - links
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/paths/~1features/post/responses/200/content/application~1json/schema/properties/data'
+                  links:
+                    type: object
+                    description: Link to the next page.
+                    properties:
+                      next:
+                        type: string
+                        format: uri
+                        description: Link to the next page or `null` if this is the last one.
+                        example: 'https://api.productboard.com/entity?pageLimit=100&pageOffset=100'
+                        nullable: true
+        '400':
+          description: API schema validation error.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - errors
+                properties:
+                  errors:
+                    type: array
+                    description: Errors that occurred.
+                    items:
+                      type: object
+                      required:
+                        - code
+                        - title
+                        - detail
+                      properties:
+                        code:
+                          type: string
+                          description: |
+                            A unique, machine-readable and stable code that identifies this error. Consult the list below for possible values and their meanings:
+                             - `validation.*` - The request failed to pass validation against this OpenAPI specification. Consult [this file](https://bitbucket.org/atlassian/swagger-request-validator/src/master/swagger-request-validator-core/src/main/resources/swagger/validation/messages.properties) for a complete list of possible values.
+                             - `feature.notFound` - Requested feature could not be found.
+                             - `product.notFound` - Requested product could not be found.
+                             - `component.notFound` - Requested component could not be found.
+                             - `parent.notFound` - Entity specified as a parent could not be found.
+                             - `parent.invalid` - Specified entity (e.g. subfeature) can not be a parent of another entity in feature hierarchy.
+                             - `featureStatus.notFound` - Requested feature status could not be found.
+                             - `featureStatus.name.ambiguous` - Feature status could not be updated to a status with given name since the name is not unique, i.e. there is more than one status of that name. You can either specify the new status using its ID or make the names unique.
+                             - `featureStatus.idAndNameSpecified` - Feature status could not be updated since both ID and name was specified. It's possible to specify only one of them.
+                             - `featureStatus.notSpecified` - Feature status could not be updated since it was not specified. You can either skip status update entirely by not setting the `status` field or you have to specify `id` or `name`.
+                             - `type.invalid` - The selected entity cannot be a parent of the entity being created/updated. (e.g. A component cannot be a parent of a subfeature.)
+                             - `startDate.invalidValue` - Start date has invalid value. The timeframe must adhere to the timeframe granularity, if set.
+                             - `webhook.notFound` - Requested webhook subscription could not be found.
+                             - `pluginIntegration.connection.notFound` - Plugin integration Connection not found.
+                             - `callback.invalidUrl` - Given URL for receiving callbacks (such as webhooks or plugin integration "push" events) is either not a syntactically valid URL or it cannot be used as a callback receiver.
+                             - `callback.probeFailed` - Callback probe failed. Callback receiver either doesn't have the specified contract implemented or it is not accessible on network level.
+                             - `system.timeout` - Some part of the system failed to respond in time.
+                             - `system.httpMethodNotSupported` - HTTP method used in the request is not supported.
+                             - `system.internalServerError` - Something else went wrong.
+                             - `system.apiNotEnabled` - Current space does not have API calls enabled.
+
+                            Note that more detail about what _exactly_ happened is usually provided within the other properties of this
+                            object.
+                          example: feature.notFound
+                        title:
+                          type: string
+                          description: 'A short, human-readable summary of the problem that doesn''t change from occurrence to occurrence of the problem.'
+                          example: Feature not found
+                        detail:
+                          type: string
+                          description: A human-readable explanation specific to this occurrence of the problem.
+                          example: Feature with ID '4efe8b61-8f18-4701-8426-0b396dda0785' could not be found. It either doesn't exist or you don't have permission to access it.
+                        source:
+                          type: object
+                          nullable: true
+                          description: An object containing references to the source of the error.
+                          properties:
+                            parameter:
+                              type: string
+                              nullable: true
+                              description: A value indicating which URI query parameter caused the error.
+                              example: featureId
+    post:
+      summary: Creates a new feature
+      description: 'Creates a new (sub)feature under a specific product, component or feature.'
+      operationId: createFeature
+      tags:
+        - features
+      parameters:
+        - $ref: '#/paths/~1features/get/parameters/0'
+      requestBody:
+        description: Feature creation request.
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - data
+              properties:
+                data:
+                  type: object
+                  required:
+                    - name
+                    - description
+                    - type
+                    - status
+                    - parent
+                  properties:
+                    name:
+                      type: string
+                      description: New feature name. It cannot be empty string.
+                      minLength: 1
+                      maxLength: 255
+                      example: Custom branding
+                    description:
+                      type: string
+                      minLength: 0
+                      maxLength: 524288
+                      description: 'Feature description. The format is a limited subset of HTML defined by [this XML schema](files/schema.xsd).'
+                      example: <p>Custom <s>branding</s> for the agent and user portals.</p>
+                    type:
+                      type: string
+                      example: feature
+                      description: Feature type.
+                      enum:
+                        - feature
+                        - subfeature
+                    status:
+                      description: 'Feature status. It is not possible to specify both ID and name, only one of them can be used.'
+                      properties:
+                        id:
+                          type: string
+                          nullable: true
+                          format: uuid
+                          description: Status id.
+                          example: 00000000-0000-0000-0000-000000000000
+                        name:
+                          type: string
+                          nullable: true
+                          description: 'Status name uniquely identifying the status to be set. Note that the operation will fail if the status name is not unique, i.e. there are multiple statuses of this name.'
+                          example: In Progress
+                    parent:
+                      oneOf:
+                        - type: object
+                          required:
+                            - feature
+                          properties:
+                            feature:
+                              type: object
+                              description: The parent feature id.
+                              required:
+                                - id
+                              properties:
+                                id:
+                                  $ref: '#/paths/~1features/get/parameters/3/schema'
+                        - type: object
+                          required:
+                            - component
+                          properties:
+                            component:
+                              type: object
+                              description: The parent component id.
+                              required:
+                                - id
+                              properties:
+                                id:
+                                  $ref: '#/paths/~1features/get/parameters/3/schema'
+                        - type: object
+                          required:
+                            - product
+                          properties:
+                            product:
+                              type: object
+                              description: The parent product id.
+                              required:
+                                - id
+                              properties:
+                                id:
+                                  $ref: '#/paths/~1features/get/parameters/3/schema'
+                      description: 'Parent of the feature. Can be either a feature, a component or a product. Exactly one of these has to be present.'
+                      additionalProperties: true
+                    archived:
+                      type: boolean
+                      nullable: true
+                      description: 'A flag denoting if the feature is archived. If null, a default value will be filled (false).'
+                      example: false
+                    timeframe:
+                      type: object
+                      nullable: true
+                      description: 'Feature timeframe. If null, the timeframe will not be set.'
+                      required:
+                        - startDate
+                        - endDate
+                      properties:
+                        startDate:
+                          oneOf:
+                            - $ref: '#/paths/~1features/post/requestBody/content/application~1json/schema/properties/data/properties/timeframe/properties/endDate/oneOf/0'
+                            - $ref: '#/paths/~1features/post/requestBody/content/application~1json/schema/properties/data/properties/timeframe/properties/endDate/oneOf/1'
+                          description: Start of the timeframe. "none" means the value is not set.
+                          example: '2021-01-01'
+                        endDate:
+                          oneOf:
+                            - type: string
+                              format: date
+                              description: Local date without time component
+                              example: '2020-12-30'
+                            - type: string
+                              enum:
+                                - none
+                              description: Constant expressing an unset value
+                              example: none
+                          description: End of the timeframe. "none" means the value is not set.
+                          example: '2021-03-31'
+      responses:
+        '200':
+          description: 'Success, the feature has been created.'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    type: object
+                    required:
+                      - id
+                      - name
+                      - description
+                      - type
+                      - archived
+                      - status
+                      - parent
+                      - links
+                      - timeframe
+                    properties:
+                      id:
+                        $ref: '#/paths/~1features/get/parameters/3/schema'
+                      name:
+                        type: string
+                        description: Entity name
+                        example: Zlack Messaging App
+                      description:
+                        type: string
+                        description: 'Entity description in a limited subset of HTML as defined by [this XML schema](files/schema.xsd).'
+                        example: <p>Custom <s>branding</s> for the agent and user portals.</p>
+                      type:
+                        type: string
+                        example: feature
+                        description: Feature type.
+                        enum:
+                          - feature
+                          - subfeature
+                      archived:
+                        type: boolean
+                        description: A flag denoting if the feature is archived
+                        example: false
+                      status:
+                        type: object
+                        description: Basic feature status. Please query feature statuses API for more details.
+                        required:
+                          - id
+                          - name
+                        properties:
+                          id:
+                            $ref: '#/paths/~1features/get/parameters/3/schema'
+                          name:
+                            type: string
+                            description: Human readable representation of the status.
+                            example: In Progress
+                      parent:
+                        type: object
+                        description: 'Parent of the feature. Currently only supports subfeatures, if the feature is not a subfeature, the "parent" element will be empty. In the future, we plan to return component or product here.'
+                        properties:
+                          feature:
+                            type: object
+                            description: 'Parent of a subfeature, not present for a feature.'
+                            required:
+                              - id
+                              - links
+                            properties:
+                              id:
+                                $ref: '#/paths/~1features/get/parameters/3/schema'
+                              links:
+                                type: object
+                                required:
+                                  - self
+                                properties:
+                                  self:
+                                    type: string
+                                    format: uri
+                                    description: Link to the the parent feature on the API
+                                    example: 'https://api.productboard.com/features/00000000-0000-0000-0000-000000000000'
+                      links:
+                        type: object
+                        required:
+                          - self
+                          - html
+                        properties:
+                          self:
+                            type: string
+                            format: uri
+                            description: Link to the feature on the API
+                            example: 'https://api.productboard.com/features/00000000-0000-0000-0000-000000000000'
+                          html:
+                            type: string
+                            format: uri
+                            description: Link to the feature in Productboard application.
+                            example: 'https://space.productboard.com/feature-board/planning/features/00000000-0000-0000-0000-000000000000'
+                      timeframe:
+                        description: Feature timeframe.
+                        type: object
+                        required:
+                          - startDate
+                          - endDate
+                        properties:
+                          startDate:
+                            oneOf:
+                              - $ref: '#/paths/~1features/post/requestBody/content/application~1json/schema/properties/data/properties/timeframe/properties/endDate/oneOf/0'
+                              - $ref: '#/paths/~1features/post/requestBody/content/application~1json/schema/properties/data/properties/timeframe/properties/endDate/oneOf/1'
+                            description: Start of the timeframe. "none" means the value is not set.
+                            example: '2021-01-01'
+                          endDate:
+                            oneOf:
+                              - $ref: '#/paths/~1features/post/requestBody/content/application~1json/schema/properties/data/properties/timeframe/properties/endDate/oneOf/0'
+                              - $ref: '#/paths/~1features/post/requestBody/content/application~1json/schema/properties/data/properties/timeframe/properties/endDate/oneOf/1'
+                            description: End of the timeframe. "none" means the value is not set.
+                            example: '2021-03-31'
+        '400':
+          $ref: '#/paths/~1features/get/responses/400'
+        '404':
+          description: Not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/paths/~1features/get/responses/400/content/application~1json/schema'
+  '/features/{id}':
+    get:
+      summary: Get a specific feature
+      description: Returns detail of a specific feature.
+      operationId: getFeature
+      tags:
+        - features
+      parameters:
+        - $ref: '#/paths/~1features/get/parameters/0'
+        - name: id
+          in: path
+          required: true
+          description: Entity identifier.
+          schema:
+            $ref: '#/paths/~1features/get/parameters/3/schema'
+      responses:
+        '200':
+          description: 'Success, the response contains valid data.'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/paths/~1features/post/responses/200/content/application~1json/schema/properties/data'
+        '400':
+          $ref: '#/paths/~1features/get/responses/400'
+        '404':
+          $ref: '#/paths/~1features/post/responses/404'
+    put:
+      summary: Update a specific feature
+      description: Updates a specific feature.
+      operationId: updateFeature
+      tags:
+        - features
+      parameters:
+        - $ref: '#/paths/~1features/get/parameters/0'
+        - $ref: '#/paths/~1features~1%7Bid%7D/get/parameters/1'
+      requestBody:
+        description: 'Feature update request, fields with `null` value will remain unchanged.'
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - data
+              properties:
+                data:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                      description: New feature name or `null` if it should not be changed. Note that empty string `""` is allowed and actually means to set the name to an empty value as opposed to `null`.
+                      nullable: true
+                      minLength: 0
+                      maxLength: 255
+                      example: Custom branding
+                    description:
+                      type: string
+                      nullable: true
+                      minLength: 0
+                      maxLength: 524288
+                      description: 'New feature description or `null` if it should not be changed. The format is a limited subset of HTML defined by [this XML schema](files/schema.xsd).'
+                      example: <p>Custom <s>branding</s> for the agent and user portals.</p>
+                    archived:
+                      type: boolean
+                      nullable: true
+                      description: Feature archived flag value or `null` if it should not be changed.
+                      example: true
+                    status:
+                      description: 'New feature status or `null` if it should not be changed. It is not possible to specify both ID and name, only one of them can be used.'
+                      properties:
+                        id:
+                          type: string
+                          nullable: true
+                          format: uuid
+                          description: Status id.
+                          example: 00000000-0000-0000-0000-000000000000
+                        name:
+                          type: string
+                          nullable: true
+                          description: 'Status name uniquely identifying the status to be set. Note that the operation will fail if the status name is not unique, i.e. there are multiple statuses of this name.'
+                          example: In Progress
+                    timeframe:
+                      description: Feature timeframe.
+                      type: object
+                      nullable: true
+                      properties:
+                        startDate:
+                          oneOf:
+                            - $ref: '#/paths/~1features/post/requestBody/content/application~1json/schema/properties/data/properties/timeframe/properties/endDate/oneOf/0'
+                            - $ref: '#/paths/~1features~1%7Bid%7D/put/requestBody/content/application~1json/schema/properties/data/properties/timeframe/properties/endDate/oneOf/1'
+                          description: Start of the timeframe. "none" means the value should be unset.
+                          example: '2021-01-01'
+                        endDate:
+                          oneOf:
+                            - $ref: '#/paths/~1features/post/requestBody/content/application~1json/schema/properties/data/properties/timeframe/properties/endDate/oneOf/0'
+                            - type: string
+                              enum:
+                                - none
+                              nullable: true
+                              description: Constant expressing an unset value
+                              example: none
+                          description: End of the timeframe. "none" means the value should be unset.
+                          example: '2021-03-31'
+      responses:
+        '200':
+          description: 'Success, the feature has been updated.'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/paths/~1features/post/responses/200/content/application~1json/schema/properties/data'
+        '400':
+          $ref: '#/paths/~1features/get/responses/400'
+        '404':
+          $ref: '#/paths/~1features/post/responses/404'
+  /feature-statuses:
+    get:
+      summary: List all feature statuses
+      description: |
+        Returns detail of all feature statuses.
+
+        This API is paginated, only the first 100 items are returned by default. The client should then recursively follow `links.next` link in the response to fetch the next page.
+      operationId: getFeatureStatuses
+      tags:
+        - statuses
+      parameters:
+        - $ref: '#/paths/~1features/get/parameters/0'
+        - $ref: '#/paths/~1features/get/parameters/1'
+        - $ref: '#/paths/~1features/get/parameters/2'
+      responses:
+        '200':
+          description: 'Success, the response contains valid data.'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                  - links
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      description: Feature status.
+                      required:
+                        - id
+                        - name
+                      properties:
+                        id:
+                          $ref: '#/paths/~1features/get/parameters/3/schema'
+                        name:
+                          type: string
+                          description: Human readable representation of the status.
+                          example: In Progress
+                  links:
+                    $ref: '#/paths/~1features/get/responses/200/content/application~1json/schema/properties/links'
+        '400':
+          $ref: '#/paths/~1features/get/responses/400'
+  /products:
+    get:
+      summary: List all products
+      description: |
+        Returns detail of all products.
+
+        This API is paginated, only the first 100 items are returned by default. The client should then recursively follow `links.next` link in the response to fetch the next page.
+      operationId: getProducts
+      tags:
+        - products
+      parameters:
+        - $ref: '#/paths/~1features/get/parameters/0'
+        - $ref: '#/paths/~1features/get/parameters/1'
+        - $ref: '#/paths/~1features/get/parameters/2'
+      responses:
+        '200':
+          description: 'Success, the response contains valid data.'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                  - links
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/paths/~1products~1%7Bid%7D/get/responses/200/content/application~1json/schema/properties/data'
+                  links:
+                    $ref: '#/paths/~1features/get/responses/200/content/application~1json/schema/properties/links'
+        '400':
+          $ref: '#/paths/~1features/get/responses/400'
+  '/products/{id}':
+    get:
+      summary: Get a specific product
+      description: Returns detail of a specific product.
+      operationId: getProduct
+      tags:
+        - products
+      parameters:
+        - $ref: '#/paths/~1features/get/parameters/0'
+        - $ref: '#/paths/~1features~1%7Bid%7D/get/parameters/1'
+      responses:
+        '200':
+          description: 'Success, the response contains valid data.'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    type: object
+                    required:
+                      - id
+                      - name
+                      - description
+                      - links
+                    properties:
+                      id:
+                        $ref: '#/paths/~1features/get/parameters/3/schema'
+                      name:
+                        $ref: '#/paths/~1features/post/responses/200/content/application~1json/schema/properties/data/properties/name'
+                      description:
+                        $ref: '#/paths/~1features/post/responses/200/content/application~1json/schema/properties/data/properties/description'
+                      links:
+                        type: object
+                        required:
+                          - self
+                          - html
+                        properties:
+                          self:
+                            type: string
+                            format: uri
+                            description: Link to the product on the API
+                            example: 'https://api.productboard.com/products/00000000-0000-0000-0000-000000000000'
+                          html:
+                            type: string
+                            format: uri
+                            description: Link to the product in Productboard application.
+                            example: 'https://space.productboard.com/feature-board/planning/features/00000000-0000-0000-0000-000000000000'
+        '400':
+          $ref: '#/paths/~1features/get/responses/400'
+        '404':
+          $ref: '#/paths/~1features/post/responses/404'
+  /components:
+    get:
+      summary: List all components
+      description: |
+        Returns detail of all components.
+
+        This API is paginated, only the first 100 items are returned by default. The client should then recursively follow `links.next` link in the response to fetch the next page.
+      operationId: getComponents
+      tags:
+        - components
+      parameters:
+        - $ref: '#/paths/~1features/get/parameters/0'
+        - $ref: '#/paths/~1features/get/parameters/1'
+        - $ref: '#/paths/~1features/get/parameters/2'
+      responses:
+        '200':
+          description: 'Success, the response contains valid data.'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                  - links
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/paths/~1components~1%7Bid%7D/get/responses/200/content/application~1json/schema/properties/data'
+                  links:
+                    $ref: '#/paths/~1features/get/responses/200/content/application~1json/schema/properties/links'
+        '400':
+          $ref: '#/paths/~1features/get/responses/400'
+  '/components/{id}':
+    get:
+      summary: Get a specific component
+      description: Returns detail of a specific component.
+      operationId: getComponent
+      tags:
+        - components
+      parameters:
+        - $ref: '#/paths/~1features/get/parameters/0'
+        - $ref: '#/paths/~1features~1%7Bid%7D/get/parameters/1'
+      responses:
+        '200':
+          description: 'Success, the response contains valid data.'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    type: object
+                    required:
+                      - id
+                      - name
+                      - description
+                      - links
+                    properties:
+                      id:
+                        $ref: '#/paths/~1features/get/parameters/3/schema'
+                      name:
+                        $ref: '#/paths/~1features/post/responses/200/content/application~1json/schema/properties/data/properties/name'
+                      description:
+                        $ref: '#/paths/~1features/post/responses/200/content/application~1json/schema/properties/data/properties/description'
+                      links:
+                        type: object
+                        required:
+                          - self
+                          - html
+                        properties:
+                          self:
+                            type: string
+                            format: uri
+                            description: Link to the component on the API
+                            example: 'https://api.productboard.com/components/00000000-0000-0000-0000-000000000000'
+                          html:
+                            type: string
+                            format: uri
+                            description: Link to the component in Productboard application.
+                            example: 'https://space.productboard.com/feature-board/planning/features/00000000-0000-0000-0000-000000000000'
+        '400':
+          $ref: '#/paths/~1features/get/responses/400'
+        '404':
+          $ref: '#/paths/~1features/post/responses/404'
+  /webhooks:
+    post:
+      summary: Create a new subscription
+      description: |
+        Creates a new webhook subscription to be actively notified on each change in the specified entities.
+
+        Part of the subscription process is a probe request to verify that the referenced service really intends to receive the webhook notifications and that the requests will be able to reach the destination, see the `callback` section below for details.
+      operationId: postWebhook
+      tags:
+        - webhooks
+      parameters:
+        - $ref: '#/paths/~1features/get/parameters/0'
+      requestBody:
+        description: Definition of webhook subscription.
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - data
+              properties:
+                data:
+                  type: object
+                  required:
+                    - name
+                    - events
+                    - notification
+                  properties:
+                    name:
+                      type: string
+                      description: 'Human-readable label for this webhook subscription, i.e. just anything that can help you to identify it easily.'
+                      minLength: 1
+                      maxLength: 255
+                      example: Feature changes webhook
+                    events:
+                      type: array
+                      minItems: 1
+                      uniqueItems: true
+                      items:
+                        type: object
+                        required:
+                          - eventType
+                        properties:
+                          eventType:
+                            $ref: '#/paths/~1webhooks/post/callbacks/entityChange/%7B%24request.body%23~1notification~1url%7D/post/requestBody/content/application~1json/schema/properties/data/properties/eventType'
+                      description: Event types to subscribe to.
+                    notification:
+                      type: object
+                      description: Where and how to send the notifications.
+                      required:
+                        - url
+                        - version
+                      properties:
+                        url:
+                          type: string
+                          format: uri
+                          pattern: 'https://.+'
+                          description: |
+                            Target URL to send the webhook notifications to. The URL has to be publicly accessible, its scheme must be
+                            `https` to communicate over an encrypted channel, certificate has to be valid and it has to be signed by a
+                            public authority.
+
+                            Hint: You can encode any additional information to the path or query parameters, they are fully under your control.
+                          example: 'https://example.destination.com/webhooks-handler'
+                          maxLength: 1024
+                        version:
+                          type: integer
+                          enum:
+                            - 1
+                          description: Version of the notification body structure to be used when sending a notification.
+                        headers:
+                          type: object
+                          description: Headers to be sent with each outgoing request from Productboard to a 3rd party system.
+                          nullable: true
+                          properties:
+                            authorization:
+                              type: string
+                              description: |
+                                Raw encoded value to be sent in the `Authorization` header. See the [CallbackAuthorizationHeader](/#section/Authentication/Using-the-token/CallbackAuthorizationHeader) for more details.
+                              example: MyAuthToken123456
+                              nullable: true
+                              maxLength: 2048
+      responses:
+        '201':
+          description: The webhook subscription has been successfully created.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    type: object
+                    required:
+                      - id
+                      - createdAt
+                      - name
+                      - events
+                    properties:
+                      id:
+                        $ref: '#/paths/~1features/get/parameters/3/schema'
+                      createdAt:
+                        type: string
+                        format: date-time
+                        description: Timestamp
+                        readOnly: true
+                        example: 2020-12-30T06:38:36.406Z
+                      name:
+                        type: string
+                        description: 'Human-readable label for this webhook subscription, i.e. just anything that can help you to identify it easily.'
+                        minLength: 1
+                        maxLength: 255
+                        example: Feature changes webhook
+                      events:
+                        type: array
+                        minItems: 1
+                        uniqueItems: true
+                        items:
+                          $ref: '#/paths/~1webhooks/post/requestBody/content/application~1json/schema/properties/data/properties/events/items'
+                        description: Event types triggerring this webhook.
+        '400':
+          $ref: '#/paths/~1features/get/responses/400'
+      callbacks:
+        entityChange:
+          '{$request.body#/notification/url}':
+            get:
+              summary: Subscription probe
+              security:
+                - CallbackAuthorizationHeader: []
+              description: |
+                Subscription probe for verification that the referenced service really intends to receive the webhook notifications and that the requests will be able to reach the destination. Firewall has to pass the requests through, https certificate has to be valid, it has to be signed by public authority, etc. Response code `200 OK`, `Content-Type: text/plain` and raw value of `validationToken` copied to response body are expected. Any other response or timeout signal an error which will immediately fail the subscription request. Timeout for reception of the response is 5 seconds.
+
+                **Note on security**: this callback makes use of a security scheme that can be configured by setting the value of `data.notification.headers.authorization` when [creating](/#operation/postWebhook) the webhook. See `AUTHORIZATIONS:` below for more details.
+              operationId: subscriptionProbe
+              parameters:
+                - in: query
+                  name: validationToken
+                  required: true
+                  description: Validation token to be echoed in the response body.
+                  allowEmptyValue: false
+                  schema:
+                    type: string
+                    example: a-unique-token-for-this-request
+              responses:
+                '200':
+                  description: Expected response.
+                  content:
+                    text/plain:
+                      schema:
+                        type: string
+                        description: 'Token value, exact copy of the query parameter.'
+                        example: a-unique-token-for-this-request
+            post:
+              summary: Webhook notification
+              security:
+                - CallbackAuthorizationHeader: []
+              description: |
+                Sent on entity change whenever the webhook subscription matches.
+
+                Timeout for the processing and whole end-to-end communication is **5 seconds**. Please consider to schedule asynchronous processing in a dedicated thread and return the response immediately. Too many timeouts and failures may result in unnecessary retries and ultimately in disabling of the subscription by Productboard with notification loss.
+
+                **Note on security**: this callback makes use of a security scheme that can be configured by setting the value of `data.notification.headers.authorization` when [creating](/#operation/postWebhook) the webhook. See `AUTHORIZATIONS:` below for more details.
+              operationId: webhookNotification
+              requestBody:
+                description: Webhook notification payload.
+                required: true
+                content:
+                  application/json:
+                    schema:
+                      type: object
+                      required:
+                        - data
+                      properties:
+                        data:
+                          type: object
+                          required:
+                            - id
+                            - eventType
+                            - links
+                          properties:
+                            id:
+                              $ref: '#/paths/~1features/get/parameters/3/schema'
+                            eventType:
+                              type: string
+                              enum:
+                                - feature.created
+                                - feature.updated
+                                - feature.deleted
+                              description: |
+                                Describes type of an event that can trigger a webhook notification:
+                                 - `feature.created` - triggered whenever a feature is created (This includes conversion from a comonent.)
+                                 - `feature.updated` - triggered whenever a feature is updated
+                                 - `feature.deleted` - triggered whenever a feature is deleted (This includes conversion to a component.)
+                            links:
+                              type: object
+                              description: Links to the updated entity.
+                              required:
+                                - target
+                              properties:
+                                target:
+                                  type: string
+                                  format: uri
+                                  description: Link to the entity whose change triggered this webhook notification.
+                                  example: 'https://api.productboard.com/features/00000000-0000-0000-0000-000000000000'
+              responses:
+                2XX:
+                  description: |
+                    Any status code from the `2XX` range is considered as a successful delivery. `204 No Content` is preferred, response body and headers are ignored.
+    get:
+      summary: List all subscriptions
+      description: |
+        Returns detail of all webhook subscriptions.
+
+        This API is paginated, only the first 100 items are returned by default. The client should then recursively follow `links.next` link in the response to fetch the next page.
+      operationId: getWebhooks
+      tags:
+        - webhooks
+      parameters:
+        - $ref: '#/paths/~1features/get/parameters/0'
+        - $ref: '#/paths/~1features/get/parameters/1'
+        - $ref: '#/paths/~1features/get/parameters/2'
+      responses:
+        '200':
+          description: 'Success, the response contains valid data.'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                  - links
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/paths/~1webhooks/post/responses/201/content/application~1json/schema/properties/data'
+                  links:
+                    $ref: '#/paths/~1features/get/responses/200/content/application~1json/schema/properties/links'
+        '400':
+          $ref: '#/paths/~1features/get/responses/400'
+  '/webhooks/{id}':
+    get:
+      summary: Get a subscription
+      description: Returns detail of a specific webhook subscription.
+      operationId: getWebhook
+      tags:
+        - webhooks
+      parameters:
+        - $ref: '#/paths/~1features/get/parameters/0'
+        - $ref: '#/paths/~1features~1%7Bid%7D/get/parameters/1'
+      responses:
+        '200':
+          description: 'Success, the response contains valid data.'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/paths/~1webhooks/post/responses/201/content/application~1json/schema/properties/data'
+        '400':
+          $ref: '#/paths/~1features/get/responses/400'
+        '404':
+          $ref: '#/paths/~1features/post/responses/404'
+    delete:
+      summary: Delete a subscription
+      description: Deletes a specific webhook subscription.
+      operationId: deleteWebhook
+      tags:
+        - webhooks
+      parameters:
+        - $ref: '#/paths/~1features/get/parameters/0'
+        - $ref: '#/paths/~1features~1%7Bid%7D/get/parameters/1'
+      responses:
+        '204':
+          description: The subscription has been deleted.
+        '400':
+          $ref: '#/paths/~1features/get/responses/400'
+        '404':
+          $ref: '#/paths/~1features/post/responses/404'
+  /plugin-integrations:
+    post:
+      summary: Create new Plugin integration
+      description: |
+        Creates new Plugin integration. Part of the creation process is a probe request to verify that the referenced service really intends to receive the notifications and that the requests will be able to reach the destination, see the `callback` section below for details.
+      operationId: postPluginIntegration
+      tags:
+        - pluginIntegrations
+      parameters:
+        - $ref: '#/paths/~1features/get/parameters/0'
+      requestBody:
+        description: Definition of plugin integration.
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - data
+              properties:
+                data:
+                  type: object
+                  description: Plugin integration data.
+                  required:
+                    - type
+                    - name
+                    - initialState
+                    - action
+                  properties:
+                    integrationStatus:
+                      type: string
+                      description: Status of the integration column in the Productboard UI.
+                      enum:
+                        - enabled
+                        - disabled
+                      example: enabled
+                    type:
+                      type: string
+                      description: |
+                        Type of the integration. Prefer your reversed Internet domain name to prefix the type, it should make all types unique and prevent conflicts. Integrations from the same partner should use the same prefix. The type is used for enhancing the UI experience. Integrations of given type can have the same icon, section in the Productboard settings etc. **TODO: Configuration mechanism for integration types is not specified yet.**
+                      minLength: 1
+                      maxLength: 255
+                      example: com.mydomain.myservice
+                    name:
+                      type: string
+                      description: Name of the integration. It will be visible as column name on Features board and in the settings.
+                      minLength: 1
+                      maxLength: 255
+                      example: My great integration
+                    initialState:
+                      type: object
+                      description: |
+                        Default status of the cell on the Feature board before the feature has been connected with the third-party system. Allows customization of the Push button.
+                      required:
+                        - label
+                      properties:
+                        label:
+                          type: string
+                          description: Push button label
+                          example: Push
+                          minLength: 1
+                          maxLength: 10
+                    action:
+                      type: object
+                      description: |
+                        Definition of the action to be performed when a user clicks on a button in Productboard UI.
+                      required:
+                        - url
+                        - version
+                      properties:
+                        url:
+                          type: string
+                          format: uri
+                          pattern: 'https://.+'
+                          description: |
+                            Target URL to be called when a button is clicked. The URL has to be publicly accessible, its scheme must be
+                            `https` to communicate over an encrypted channel, certificate has to be valid and it has to be signed by a
+                            public authority.
+
+                            Hint: You can encode any additional information to the path or query parameters, they are fully under your control.
+                          example: 'https://example.destination.com/connect'
+                          maxLength: 1024
+                        version:
+                          type: integer
+                          enum:
+                            - 1
+                          description: Version of the action body structure to be used when notifing about push
+                        headers:
+                          $ref: '#/paths/~1webhooks/post/requestBody/content/application~1json/schema/properties/data/properties/notification/properties/headers'
+      responses:
+        '201':
+          description: The Plugin Integration has been successfully created.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    type: object
+                    description: Plugin integration data.
+                    required:
+                      - id
+                      - createdAt
+                      - integrationStatus
+                      - type
+                      - name
+                      - initialState
+                      - links
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                        description: Entity identifier.
+                        readOnly: true
+                        example: 00000000-0000-0000-0000-000000000000
+                      createdAt:
+                        $ref: '#/paths/~1webhooks/post/responses/201/content/application~1json/schema/properties/data/properties/createdAt'
+                      integrationStatus:
+                        $ref: '#/paths/~1plugin-integrations/post/requestBody/content/application~1json/schema/properties/data/properties/integrationStatus'
+                      type:
+                        $ref: '#/paths/~1plugin-integrations/post/requestBody/content/application~1json/schema/properties/data/properties/type'
+                      name:
+                        $ref: '#/paths/~1plugin-integrations/post/requestBody/content/application~1json/schema/properties/data/properties/name'
+                      initialState:
+                        $ref: '#/paths/~1plugin-integrations/post/requestBody/content/application~1json/schema/properties/data/properties/initialState'
+                      links:
+                        type: object
+                        required:
+                          - self
+                        properties:
+                          self:
+                            type: string
+                            format: uri
+                            description: Link to the the Plugin integration
+                            example: 'https://api.productboard.com/plugin-integrations/00000000-0000-0000-0000-000000000000'
+        '400':
+          $ref: '#/paths/~1features/get/responses/400'
+      callbacks:
+        buttonClicked:
+          '{$request.body#/data/action/url}':
+            get:
+              summary: Action probe
+              security:
+                - CallbackAuthorizationHeader: []
+              description: |
+                Probe for verification that the referenced service really intends to receive the call and that the requests will be able to reach the destination. Firewall has to pass the requests through, https certificate has to be valid, it has to be signed by public authority, etc. Response code `200 OK`, `Content-Type: text/plain` and raw value of `validationToken` copied to response body are expected. Any other response or timeout signal an error which will immediately fail the creation request. Timeout for reception of the response is 5 seconds.
+
+                **Note on security**: this callback makes use of a security scheme that can be configured by setting the value of `data.action.headers.authorization` when [creating](/#operation/postPluginIntegration) the integration. See `AUTHORIZATIONS:` below for more details.
+              operationId: actionProbe
+              parameters:
+                - in: query
+                  name: validationToken
+                  required: true
+                  description: Validation token to be echoed in the response body.
+                  allowEmptyValue: false
+                  schema:
+                    type: string
+                    example: a-unique-token-for-this-request
+              responses:
+                '200':
+                  description: Expected response.
+                  content:
+                    text/plain:
+                      schema:
+                        type: string
+                        description: 'Token value, exact copy of the query parameter.'
+                        example: a-unique-token-for-this-request
+            post:
+              summary: Action notification
+              security:
+                - CallbackAuthorizationHeader: []
+              description: |
+                Sent when user clicks on a button in Productboard UI. This is how Productboard lets the 3rd party system know that a user wants to interact with it from Productboard. There are currently three possible types of such user interaction:
+                  - __push__, i.e. clicking on a push button in integration column or in feature sidebar
+                  - __unlink__, i.e. clicking on an unlink button in feature sidebar
+                  - __dismiss__, i.e. clicking on a dismiss button in error popup on push failure
+
+                No matter which button the user clicks, Productboard always notifies the 3rd party system using _the same_ endpoint configured during creation of the integration. `data.trigger` in request body can be examined to determine the type of the action (i.e. which button was clicked).
+
+                The 3rd party system then needs to indicate _how_ it handled the event by sending back a response. What happens next on Productboard's side is determined by the `state` sent back in the response. For consistency, the semantics of each _state_ are _always_ the same, no matter if the response corresponds to a "push", "unlink" or "dismiss" event.
+
+                The exact semantics are described in detail in the description of [Configure a Plugin integration connection](#operation/putPluginIntegrationConnection) endpoint and apply to this use-case as well. In other words, returning a response to an action notification request __is equivalent__ to sending that exact payload to the [Configure a Plugin integration connection](#operation/putPluginIntegrationConnection) endpoint. This also means that clicking the "unlink" button _may not_ actually result in corresponding connection being removed. The 3rd party system is free to return whichever state it sees fit, thus if it really wants to remove the connection, it _needs to_ return the `initial` state to let Productboard know that the connection is to be reset.
+
+                Even though the behavior is completely up to the 3rd party system, the following behavior is recommended:
+                  - __push__ should switch the connection to the `connected` state. In case of async processing the endpoint should return `progress` state and later set the connection state using the connection API. In case of push error the `error` state should be used.
+                  - __unlink__ should switch the connection to the `initial` state
+                  - __dismiss__ should switch the connection to the `initial` state
+
+                Timeout for the processing and whole end-to-end communication is **5 seconds**. If there is a possibility that your endpoint will take longer time to process an event notification, you should consider to return __In progress__ state immediately and process the request asynchronously. This API easily allows such use-cases, see [this section](#operation/putPluginIntegrationConnection) for details.
+
+                **Note on security**: this callback makes use of a security scheme that can be configured by setting the value of `data.action.headers.authorization` when [creating](/#operation/postPluginIntegration) the integration. See `AUTHORIZATIONS:` below for more details.
+              operationId: actionNotification
+              requestBody:
+                description: Action payload.
+                required: true
+                content:
+                  application/json:
+                    schema:
+                      type: object
+                      required:
+                        - data
+                      properties:
+                        data:
+                          type: object
+                          description: |
+                            Data to be sent when user clicks on an integration button.
+                          required:
+                            - integrationId
+                            - trigger
+                            - feature
+                          properties:
+                            integrationId:
+                              $ref: '#/paths/~1features/get/parameters/3/schema'
+                            trigger:
+                              type: string
+                              enum:
+                                - button.push
+                                - button.unlink
+                                - button.dismiss
+                              example: button.push
+                              description: Button that initiated the action
+                            feature:
+                              description: Data about the feature related to the clicked button.
+                              type: object
+                              required:
+                                - id
+                                - links
+                              properties:
+                                id:
+                                  $ref: '#/paths/~1features/get/parameters/3/schema'
+                                links:
+                                  type: object
+                                  required:
+                                    - self
+                                    - html
+                                  properties:
+                                    self:
+                                      type: string
+                                      format: uri
+                                      description: Link to the feature API
+                                      example: 'https://api.productboard.com/features/00000000-0000-0000-0000-000000000000'
+                                    html:
+                                      type: string
+                                      format: uri
+                                      description: Link to the feature in Productboard UI
+                                      example: 'https://space.productboard.com/feature-board/1300746-planning/features/1886736/detail'
+                            triggeredByUser:
+                              description: User that triggered the operation
+                              type: object
+                              required:
+                                - name
+                                - email
+                              properties:
+                                name:
+                                  type: string
+                                  description: Name of the user that triggered the opearation
+                                  example: John Doe
+                                email:
+                                  type: string
+                                  format: email
+                                  description: Email of the user that triggered the opearation
+                                  example: john.doe@example.org
+                            links:
+                              type: object
+                              required:
+                                - connection
+                              properties:
+                                connection:
+                                  $ref: '#/paths/~1plugin-integrations~1%7Bid%7D~1connections~1%7BfeatureId%7D/get/responses/200/content/application~1json/schema/properties/data/properties/links/properties/self'
+              responses:
+                '200':
+                  description: 'Success, the response contains valid data.'
+                  content:
+                    application/json:
+                      schema:
+                        type: object
+                        required:
+                          - data
+                        properties:
+                          data:
+                            $ref: '#/paths/~1plugin-integrations~1%7Bid%7D~1connections~1%7BfeatureId%7D/put/requestBody/content/application~1json/schema/properties/data'
+    get:
+      summary: List all plugin integrations
+      description: |
+        Returns detail of all plugin integrations.
+
+        This API is paginated, only the first 100 items are returned by default. The client should then recursively follow `links.next` link in the response to fetch the next page.
+      operationId: getPluginIntegrations
+      tags:
+        - pluginIntegrations
+      parameters:
+        - $ref: '#/paths/~1features/get/parameters/0'
+        - $ref: '#/paths/~1features/get/parameters/1'
+        - $ref: '#/paths/~1features/get/parameters/2'
+      responses:
+        '200':
+          description: 'Success, the response contains valid data.'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                  - links
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/paths/~1plugin-integrations/post/responses/201/content/application~1json/schema/properties/data'
+                  links:
+                    $ref: '#/paths/~1features/get/responses/200/content/application~1json/schema/properties/links'
+        '400':
+          $ref: '#/paths/~1features/get/responses/400'
+  '/plugin-integrations/{id}':
+    get:
+      summary: Get a plugin integration
+      description: Returns detail of a specific plugin integration.
+      operationId: getPluginIntegration
+      tags:
+        - pluginIntegrations
+      parameters:
+        - $ref: '#/paths/~1features/get/parameters/0'
+        - $ref: '#/paths/~1features~1%7Bid%7D/get/parameters/1'
+      responses:
+        '200':
+          description: 'Success, the response contains valid data.'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/paths/~1plugin-integrations/post/responses/201/content/application~1json/schema/properties/data'
+        '400':
+          $ref: '#/paths/~1features/get/responses/400'
+        '404':
+          $ref: '#/paths/~1features/post/responses/404'
+    put:
+      summary: Update Plugin integration
+      description: |
+        Updates Plugin integration. Fileds that are not set will preserve their current value. If the integration is enabled a probe request is sent to verify that the referenced service really intends to receive the notifications and that the requests will be able to reach the destination.
+      operationId: putPluginIntegration
+      tags:
+        - pluginIntegrations
+      parameters:
+        - $ref: '#/paths/~1features/get/parameters/0'
+        - $ref: '#/paths/~1features~1%7Bid%7D/get/parameters/1'
+      requestBody:
+        description: Definition of plugin integration.
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - data
+              properties:
+                data:
+                  type: object
+                  description: Plugin integration data to be updated. Fileds that are not set will preserve their current value.
+                  properties:
+                    integrationStatus:
+                      $ref: '#/paths/~1plugin-integrations/post/requestBody/content/application~1json/schema/properties/data/properties/integrationStatus'
+                    name:
+                      $ref: '#/paths/~1plugin-integrations/post/requestBody/content/application~1json/schema/properties/data/properties/name'
+                    initialState:
+                      $ref: '#/paths/~1plugin-integrations/post/requestBody/content/application~1json/schema/properties/data/properties/initialState'
+                    action:
+                      $ref: '#/paths/~1plugin-integrations/post/requestBody/content/application~1json/schema/properties/data/properties/action'
+      responses:
+        '200':
+          description: 'Success, the response contains valid data.'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/paths/~1plugin-integrations/post/responses/201/content/application~1json/schema/properties/data'
+        '400':
+          $ref: '#/paths/~1features/get/responses/400'
+        '404':
+          $ref: '#/paths/~1features/post/responses/404'
+    delete:
+      summary: Delete a plugin integration
+      description: Deletes a specific plugin integration.
+      operationId: deletePluginIntegration
+      tags:
+        - pluginIntegrations
+      parameters:
+        - $ref: '#/paths/~1features/get/parameters/0'
+        - $ref: '#/paths/~1features~1%7Bid%7D/get/parameters/1'
+      responses:
+        '204':
+          description: The integration has been deleted.
+        '400':
+          $ref: '#/paths/~1features/get/responses/400'
+        '404':
+          $ref: '#/paths/~1features/post/responses/404'
+  '/plugin-integrations/{id}/connections':
+    get:
+      summary: List all Plugin integration connections
+      description: |
+        Returns detail of all plugin integration connections, __except__ for those having their `state` set to `initial`. The `initial` state is the default and basically means that the connection does not exist at the moment.
+
+        This API is paginated, only the first 100 items are returned by default. The client should then recursively follow `links.next` link in the response to fetch the next page.
+      operationId: getPluginIntegrationConnections
+      tags:
+        - pluginIntegrationConnections
+      parameters:
+        - $ref: '#/paths/~1features/get/parameters/0'
+        - $ref: '#/paths/~1features/get/parameters/1'
+        - $ref: '#/paths/~1features/get/parameters/2'
+        - $ref: '#/paths/~1features~1%7Bid%7D/get/parameters/1'
+      responses:
+        '200':
+          description: 'Success, the response contains valid data.'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                  - links
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/paths/~1plugin-integrations~1%7Bid%7D~1connections~1%7BfeatureId%7D/get/responses/200/content/application~1json/schema/properties/data'
+                  links:
+                    $ref: '#/paths/~1features/get/responses/200/content/application~1json/schema/properties/links'
+        '400':
+          $ref: '#/paths/~1features/get/responses/400'
+  '/plugin-integrations/{id}/connections/{featureId}':
+    get:
+      summary: Get a Plugin integration connection
+      description: Returns detail of a specific plugin integration connection.
+      operationId: getPluginIntegrationConnection
+      tags:
+        - pluginIntegrationConnections
+      parameters:
+        - $ref: '#/paths/~1features/get/parameters/0'
+        - $ref: '#/paths/~1features~1%7Bid%7D/get/parameters/1'
+        - name: featureId
+          in: path
+          required: true
+          description: Feature identifier.
+          schema:
+            $ref: '#/paths/~1features/get/parameters/3/schema'
+      responses:
+        '200':
+          description: 'Success, the response contains valid data.'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    type: object
+                    description: Plugin integration connection data.
+                    required:
+                      - featureId
+                      - connection
+                      - links
+                    properties:
+                      featureId:
+                        $ref: '#/paths/~1features/get/parameters/3/schema'
+                      connection:
+                        $ref: '#/paths/~1plugin-integrations~1%7Bid%7D~1connections~1%7BfeatureId%7D/put/requestBody/content/application~1json/schema/properties/data/properties/connection'
+                      links:
+                        type: object
+                        required:
+                          - self
+                        properties:
+                          self:
+                            type: string
+                            format: uri
+                            description: Link to the the connection
+                            example: 'https://api.productboard.com/plugin-integrations/00000000-0000-0000-0000-000000000000/connections/00000000-0000-0000-0000-000000000000'
+        '400':
+          $ref: '#/paths/~1features/get/responses/400'
+        '404':
+          $ref: '#/paths/~1features/post/responses/404'
+    put:
+      summary: Configure a Plugin integration connection
+      description: |
+        Configures a Plugin integration connection, possibly resulting in a change of the corresponding push button. This operation notifies Productboard that the 3rd party system tried (or is still trying, depending on the payload type) to establish a connection between Productboard feature and some entity in the other system. There are currently three possible outcomes of such an attempt:
+        1. __Connected__: the connection has been established and a push button corresponding to the feature in related Plugin integration should change to represent the connection. This happens when the connection with state `connected` is received in the request body.
+        2. __Error__: the connection could not be established and a push button corresponding to the feature in related Plugin integration should change to show the error. This happens connection with state `error` is received in the request body.
+        3. __In progress__: the connection is still being created (possibly asynchronously) and a push button corresponding to the feature in related Plugin integration should display an "in progress" state. This happens when the state `progress` is received in the request body.
+
+        There is an additional state a connection can be in which does not directly map to an outcome of a push event, the __Initial__ state. This is the default state for all connections and has the semantics of "a connection does not currently exist for given feature". The _Initial_ state is, however, a fully valid type from the API's perspective and it is thus possible to set a connection to the _Initial_ state using this endpoint. The effect of that is _exactly_ the same as if the [Delete a plugin integration connection](#operation/deletePluginIntegrationConnection) endpoint was called instead.
+
+        Note that this is the endpoint to be used when the 3rd party system processes feature push events asynchronously. In that case the flow would be similar to this:
+        1. A feature is pushed from Productboard
+        2. The 3rd party schedules a task to be processed asynchronously and returns an "in progress" response. This makes Producboard render an "in progress" state on the corresponding push button.
+        3. Once the 3rd party finishes processing of the task, this endpoint is called to update the connection (and by extension, the state of said push button) to either a success or a failure.
+      operationId: putPluginIntegrationConnection
+      tags:
+        - pluginIntegrationConnections
+      parameters:
+        - $ref: '#/paths/~1features/get/parameters/0'
+        - $ref: '#/paths/~1features~1%7Bid%7D/get/parameters/1'
+        - $ref: '#/paths/~1plugin-integrations~1%7Bid%7D~1connections~1%7BfeatureId%7D/get/parameters/2'
+      requestBody:
+        description: Definition of a plugin integration connection.
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - data
+              properties:
+                data:
+                  type: object
+                  description: Plugin integration connection data.
+                  required:
+                    - connection
+                  properties:
+                    connection:
+                      oneOf:
+                        - $ref: '#/components/schemas/connected'
+                        - $ref: '#/components/schemas/error'
+                        - $ref: '#/components/schemas/progress'
+                        - $ref: '#/components/schemas/initial'
+                      discriminator:
+                        propertyName: state
+      responses:
+        '200':
+          description: 'Success, the response contains valid data.'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/paths/~1plugin-integrations~1%7Bid%7D~1connections~1%7BfeatureId%7D/get/responses/200/content/application~1json/schema/properties/data'
+        '400':
+          $ref: '#/paths/~1features/get/responses/400'
+    delete:
+      summary: Delete a plugin integration connection
+      description: |
+        Deletes a specific plugin integration connection. This voids the actual connection between a Productboard feature identified by `featureId` and the 3rd party system, effectively resetting the push button for that feature within correspoding Plugin integration to its initial state.
+      operationId: deletePluginIntegrationConnection
+      tags:
+        - pluginIntegrationConnections
+      parameters:
+        - $ref: '#/paths/~1features/get/parameters/0'
+        - $ref: '#/paths/~1features~1%7Bid%7D/get/parameters/1'
+        - $ref: '#/paths/~1plugin-integrations~1%7Bid%7D~1connections~1%7BfeatureId%7D/get/parameters/2'
+      responses:
+        '204':
+          description: 'Success, the connection has been deleted.'
+        '400':
+          $ref: '#/paths/~1features/get/responses/400'
+        '404':
+          $ref: '#/paths/~1features/post/responses/404'
+  /jira-integrations:
+    get:
+      summary: List all Jira integrations
+      description: |
+        Returns detail of all Jira integrations.
+
+        This API is paginated, only the first 100 items are returned by default. The client should then recursively follow `links.next` link in the response to fetch the next page.
+      operationId: getJiraIntegrations
+      tags:
+        - jiraIntegrations
+      parameters:
+        - name: X-Version
+          description: API version.
+          in: header
+          required: true
+          schema:
+            type: integer
+            enum:
+              - 1
+          example: 1
+        - name: pageLimit
+          in: query
+          required: false
+          description: Page limit.
+          allowEmptyValue: true
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 100
+            default: 100
+        - name: pageOffset
+          in: query
+          required: false
+          description: Page offset.
+          allowEmptyValue: true
+          schema:
+            type: integer
+            format: int32
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: 'Success, the response contains valid data.'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                  - links
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/paths/~1jira-integrations~1%7Bid%7D/get/responses/200/content/application~1json/schema/properties/data'
+                  links:
+                    type: object
+                    description: Link to the next page.
+                    properties:
+                      next:
+                        type: string
+                        format: uri
+                        description: Link to the next page or `null` if this is the last one.
+                        example: 'https://api.productboard.com/entity?pageLimit=100&pageOffset=100'
+                        nullable: true
+        '400':
+          description: API schema validation error.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - errors
+                properties:
+                  errors:
+                    type: array
+                    description: Errors that occurred.
+                    items:
+                      type: object
+                      required:
+                        - code
+                        - title
+                        - detail
+                      properties:
+                        code:
+                          type: string
+                          description: |
+                            A unique, machine-readable and stable code that identifies this error. Consult the list below for possible values and their meanings:
+                             - `validation.*` - The request failed to pass validation against this OpenAPI specification. Consult [this file](https://bitbucket.org/atlassian/swagger-request-validator/src/master/swagger-request-validator-core/src/main/resources/swagger/validation/messages.properties) for a complete list of possible values.
+                             - `jiraIntegration.notFound` - Jira integration can not be found
+                             - `jiraConnection.notFound` - Productboard feature - Jira issue connection not found
+                             - `system.timeout` - Some part of the system failed to respond in time.
+                             - `system.httpMethodNotSupported` - HTTP method used in the request is not supported.
+                             - `system.internalServerError` - Something else went wrong.
+                             - `system.apiNotEnabled` - Current space does not have API calls enabled.
+                            Note that more detail about what _exactly_ happened is usually provided within the other properties of this
+                            object.
+                          example: feature.notFound
+                        title:
+                          type: string
+                          description: 'A short, human-readable summary of the problem that doesn''t change from occurrence to occurrence of the problem.'
+                          example: Feature not found
+                        detail:
+                          type: string
+                          description: A human-readable explanation specific to this occurrence of the problem.
+                          example: Feature with ID '4efe8b61-8f18-4701-8426-0b396dda0785' could not be found. It either doesn't exist or you don't have permission to access it.
+                        source:
+                          type: object
+                          nullable: true
+                          description: An object containing references to the source of the error.
+                          properties:
+                            parameter:
+                              type: string
+                              nullable: true
+                              description: A value indicating which URI query parameter caused the error.
+                              example: featureId
+  '/jira-integrations/{id}':
+    get:
+      summary: Get a Jira integration
+      description: Returns detail of a specific Jira integration.
+      operationId: getJiraIntegration
+      tags:
+        - jiraIntegrations
+      parameters:
+        - $ref: '#/paths/~1jira-integrations/get/parameters/0'
+        - name: id
+          in: path
+          required: true
+          description: Entity identifier.
+          schema:
+            type: string
+            format: uuid
+            description: Entity identifier.
+            example: 00000000-0000-0000-0000-000000000000
+      responses:
+        '200':
+          description: 'Success, the response contains valid data.'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    type: object
+                    description: Jira integration data.
+                    required:
+                      - id
+                      - createdAt
+                      - integrationStatus
+                      - name
+                      - links
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                        description: Entity identifier.
+                        readOnly: true
+                        example: 00000000-0000-0000-0000-000000000000
+                      createdAt:
+                        type: string
+                        format: date-time
+                        description: Timestamp
+                        readOnly: true
+                        example: 2020-12-30T06:38:36.406Z
+                      integrationStatus:
+                        type: string
+                        description: Status of the integration column in the Productboard UI.
+                        enum:
+                          - enabled
+                          - disabled
+                        example: enabled
+                      name:
+                        type: string
+                        description: Name of the integration.
+                        minLength: 1
+                        maxLength: 255
+                        example: My great integration
+                      links:
+                        type: object
+                        required:
+                          - self
+                          - connections
+                        properties:
+                          self:
+                            type: string
+                            format: uri
+                            description: Link to the Jira integration
+                            example: 'https://api.productboard.com/jira-integrations/00000000-0000-0000-0000-000000000000'
+                          connections:
+                            type: string
+                            format: uri
+                            description: Link to the list of Jira integration connections
+                            example: 'https://api.productboard.com/jira-integrations/00000000-0000-0000-0000-000000000000/connections'
+        '400':
+          $ref: '#/paths/~1jira-integrations/get/responses/400'
+        '404':
+          description: Not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/paths/~1jira-integrations/get/responses/400/content/application~1json/schema'
+  '/jira-integrations/{id}/connections':
+    get:
+      summary: List all Jira integration connections
+      description: |
+        Returns detail of all Productboard feature - Jira issue connections for given integration. It also allows to find a connection by Jira issue key or ID.
+
+        This API is paginated, only the first 100 items are returned by default. The client should then recursively follow `links.next` link in the response to fetch the next page.
+      operationId: getJiraIntegrationConnections
+      tags:
+        - jiraIntegrationConnections
+      parameters:
+        - $ref: '#/paths/~1jira-integrations/get/parameters/0'
+        - $ref: '#/paths/~1jira-integrations/get/parameters/1'
+        - $ref: '#/paths/~1jira-integrations/get/parameters/2'
+        - $ref: '#/paths/~1jira-integrations~1%7Bid%7D/get/parameters/1'
+        - in: query
+          name: connection.issueKey
+          required: false
+          description: 'If specified, the resource returns only connection for given Jira issue (if any).'
+          schema:
+            type: string
+        - in: query
+          name: connection.issueId
+          required: false
+          description: 'If specified, the resource returns only connection for given Jira issue (if any).'
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 'Success, the response contains valid data.'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                  - links
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/paths/~1jira-integrations~1%7Bid%7D~1connections~1%7BfeatureId%7D/get/responses/200/content/application~1json/schema/properties/data'
+                  links:
+                    $ref: '#/paths/~1jira-integrations/get/responses/200/content/application~1json/schema/properties/links'
+        '400':
+          $ref: '#/paths/~1jira-integrations/get/responses/400'
+  '/jira-integrations/{id}/connections/{featureId}':
+    get:
+      summary: Get a Jira integration connection
+      description: Returns detail of a specific Productboard feature - Jira issue connection.
+      operationId: getJiraIntegrationConnection
+      tags:
+        - jiraIntegrationConnections
+      parameters:
+        - $ref: '#/paths/~1jira-integrations/get/parameters/0'
+        - $ref: '#/paths/~1jira-integrations~1%7Bid%7D/get/parameters/1'
+        - name: featureId
+          in: path
+          required: true
+          description: Feature identifier.
+          schema:
+            $ref: '#/paths/~1jira-integrations~1%7Bid%7D/get/parameters/1/schema'
+      responses:
+        '200':
+          description: 'Success, the response contains valid data.'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    type: object
+                    description: Jira integration connection data.
+                    required:
+                      - featureId
+                      - connection
+                      - links
+                    properties:
+                      featureId:
+                        $ref: '#/paths/~1jira-integrations~1%7Bid%7D/get/parameters/1/schema'
+                      connection:
+                        type: object
+                        description: |
+                          Represents a link between a Productboard feature and a Jira issue.
+                        required:
+                          - issueKey
+                          - issueId
+                        properties:
+                          issueKey:
+                            type: string
+                            description: Jira issue KEY
+                            example: JIRA-123
+                          issueId:
+                            type: string
+                            description: Jira issue ID
+                            example: '123456'
+                      links:
+                        type: object
+                        required:
+                          - self
+                        properties:
+                          self:
+                            type: string
+                            format: uri
+                            description: Link to the the connection
+                            example: 'https://api.productboard.com/jira-integrations/00000000-0000-0000-0000-000000000000/connections/00000000-0000-0000-0000-000000000000'
+        '400':
+          $ref: '#/paths/~1jira-integrations/get/responses/400'
+        '404':
+          $ref: '#/paths/~1jira-integrations~1%7Bid%7D/get/responses/404'
+components:
+  headers:
+    Retry-After:
+      description: The number of seconds to wait until the rate limit will be lifted and the request should be retried
+      schema:
+        type: integer
+        example: 3600
+  parameters:
+    Productboard-Partner-Id:
+      in: header
+      name: Productboard-Partner-Id
+      description: A unique string identifying the external system through which the data came.
+      schema:
+        type: string
+      required: false
+  responses:
+    RateLimited:
+      description: The client's request rate limit has been exceeded
+      headers:
+        Retry-After:
+          $ref: '#/components/headers/Retry-After'
+  schemas:
+    Note:
+      type: object
+      required:
+        - id
+        - title
+        - content
+      properties:
+        id:
+          readOnly: true
+          type: string
+          format: uuid
+          example: d290f1ee-6c54-4b01-90e6-d701748f0851
+        title:
+          writeOnly: true
+          type: string
+          example: Note title
+        content:
+          writeOnly: true
+          description: HTML-encoded rich text supporting only certain tags; unsupported tags will be stripped out
+          type: string
+          example: Here is some <b>exciting</b> content
+        customer_email:
+          writeOnly: true
+          type: string
+          example: customer@example.com
+          description: 'email address of customer to attach to the note - will use an existing customer record if one is found, otherwise will create one with the specified email address within a company with matching domain (if it already exists).'
+        display_url:
+          writeOnly: true
+          type: string
+          format: url
+          pattern: '^(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w\.-]+)+[\w\-\._~:/?#[\]@!\$&''\(\)\*\+,;=.]+$'
+          example: 'https://www.example.com/deskdesk/notes/123'
+          description: 'For entities that originated in external systems and entered Productboard via the API or integrations, a url where the external entity can be accessed - displayed as a clickable title in the Productboard UI.'
+        source:
+          writeOnly: true
+          allOf:
+            - $ref: '#/components/schemas/Source'
+        tags:
+          writeOnly: true
+          type: array
+          items:
+            type: string
+          description: 'A set of tags for categorizing the note; tag uniqueness is case- and diacritic-insensitive, so Apple, APPLE, and äpple will all end up assigned to the same tag, and the tag displayed will be whichever variant was first (chronologically) entered into Productboard'
+          example:
+            - '3.0'
+            - important
+            - experimental
+    Source:
+      description: 'For entities that originated in external systems and entered Productboard via the API or integrations, the source keeps track of the original source entity in that origin system(s)'
+      type: object
+      required:
+        - origin
+        - record_id
+      properties:
+        origin:
+          type: string
+          description: A unique string identifying the external system from which the data came
+          example: deskdesk
+        record_id:
+          type: string
+          description: The unique id of the record in the origin system
+          example: '123'
+    URL:
+      type: string
+      pattern: '^(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w\.-]+)+[\w\-\._~:/?#[\]@!\$&''\(\)\*\+,;=.]+$'
+    connected:
+      type: object
+      description: |
+        Represents an actual Plugin integration connection. This value is understood as a successful result of an operation creating a connection between Productboard feature and an entity in the 3rd party system.
+      required:
+        - state
+        - label
+        - hoverLabel
+        - tooltip
+        - color
+        - targetUrl
+      properties:
+        state:
+          type: string
+          description: Connection state discriminator
+          enum:
+            - connected
+        label:
+          type: string
+          description: |
+            Text to display on the push button. Typical use case is current state of the entity in the 3rd party system.
+          example: In progress
+          minLength: 1
+          maxLength: 20
+        hoverLabel:
+          type: string
+          description: |
+            Text to display on the push button upon hovering over it. This temporarily replaces the value specified in `label` if the mouse pointer hovers over the button. This can be used e.g. to easily remind the user what entity the feature is connected to.
+          example: Issue 123
+          minLength: 1
+          maxLength: 20
+        tooltip:
+          type: string
+          description: |
+            Text to display in a tooltip above the push button. The tooltip shows when the user hovers on the push button and stays for a while. This is ideal for longer, more detailed description of the connected entity.
+          example: Issue 123 - Implement XYZ
+          minLength: 1
+          maxLength: 50
+        color:
+          type: string
+          description: The color to change the push button background to.
+          example: blue
+          enum:
+            - gray
+            - blue
+            - green
+            - yellow
+            - orange
+            - red
+            - purple
+        targetUrl:
+          type: string
+          format: uri
+          description: |
+            An URL to point the user to the connected entity in the other system upon clicking the push button.
+          minLength: 1
+          maxLength: 1000
+    error:
+      type: object
+      description: |
+        Represents an error state of a particular push button. This value is understood as an unsuccessful result of an operation that was supposed to create a connection between Producboard feature and a 3rd party system.
+      required:
+        - state
+        - message
+      properties:
+        state:
+          type: string
+          description: Connection state discriminator
+          enum:
+            - error
+        message:
+          type: string
+          description: An error message explaning why the connection could not be established.
+          example: You don't have permission to create XYZ.
+          minLength: 1
+          maxLength: 255
+        debugDetail:
+          type: string
+          readOnly: true
+          description: 'If the push fails on Productboard side, this field will contain error details. The value is not visible in the UI, it can be used only by developer while debugging new integration.'
+          example: JSON decoding error - targetUrl missing
+          maxLength: 8000
+    progress:
+      type: object
+      description: |
+        Represents an "in progress" state of a particular push button. This value is understood as an intermediate result of an operation that is still creating a connection between Producboard feature and a 3rd party system. This is a temporary state and it is expected that the 3rd party system will eventually either successfuly create a connection or report and error.
+      required:
+        - state
+      properties:
+        state:
+          type: string
+          description: Connection state discriminator
+          enum:
+            - progress
+    initial:
+      type: object
+      description: |
+        Represents an "initial" state of a particular push button. This value is understood as the default state in which no connection for given feature exists.
+      required:
+        - state
+      properties:
+        state:
+          type: string
+          description: Connection state discriminator
+          enum:
+            - initial
+  securitySchemes:
+    JWT-Token:
+      description: |
+        Following is the technical OpenAPI 3.0 specification of the JWT token method used to authenticate requests to the API:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    CallbackAuthorizationHeader:
+      description: |
+        A security scheme used to optionally secure requests outgoing from Productboard with a configurable secret. The secret value (if configured) will be sent with each outgoing request from Productboard to a 3rd party system within the `Authorization` header. This makes the security scheme rather flexible - depending on the configured value, it can represent:
+        - HTTP `Basic` authentication using a value like `Basic aGVsbG86d29ybGQ=`
+        - HTTP `Bearer` authentication using a value like `Bearer <token>`
+        - any other authentication scheme that only requires one secret value to be exchanged
+      type: apiKey
+      in: header
+      name: Authorization
+security:
+  - JWT-Token: []
