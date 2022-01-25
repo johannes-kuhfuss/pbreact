@@ -29,7 +29,8 @@ func (r PbApiRepository) RegisterForNotifications() api_error.ApiErr {
 	if err != nil {
 		return err
 	}
-	req, err := r.PrepareHttpRequest("POST", "", bytes.NewBuffer(*subReq))
+	reqUrl, _ := url.Parse(r.cfg.PbApi.BaseUrl + "webhooks")
+	req, err := r.PrepareHttpRequest("POST", reqUrl.String(), bytes.NewBuffer(*subReq))
 	if err != nil {
 		return err
 	}
@@ -43,7 +44,8 @@ func (r PbApiRepository) RegisterForNotifications() api_error.ApiErr {
 func (r PbApiRepository) GetNotifications() (*dto.PbSubscriptionResponse, api_error.ApiErr) {
 	var pbResp dto.PbSubscriptionResponse
 
-	req, err := r.PrepareHttpRequest("GET", "", nil)
+	reqUrl, _ := url.Parse(r.cfg.PbApi.BaseUrl + "webhooks")
+	req, err := r.PrepareHttpRequest("GET", reqUrl.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +70,8 @@ func (r PbApiRepository) GetNotifications() (*dto.PbSubscriptionResponse, api_er
 func (r PbApiRepository) UnregisterForNotifications(notifs dto.PbSubscriptionResponse) api_error.ApiErr {
 	for _, val := range notifs.Data {
 		urlExt := fmt.Sprintf("/%v", val.ID)
-		req, err := r.PrepareHttpRequest("DELETE", urlExt, nil)
+		reqUrl, _ := url.Parse(r.cfg.PbApi.BaseUrl + "webhooks" + urlExt)
+		req, err := r.PrepareHttpRequest("DELETE", reqUrl.String(), nil)
 		if err != nil {
 			return err
 		}
@@ -80,14 +83,13 @@ func (r PbApiRepository) UnregisterForNotifications(notifs dto.PbSubscriptionRes
 	return nil
 }
 
-func (r PbApiRepository) PrepareHttpRequest(reqType string, UrlExt string, body io.Reader) (*http.Request, api_error.ApiErr) {
+func (r PbApiRepository) PrepareHttpRequest(reqType string, url string, body io.Reader) (*http.Request, api_error.ApiErr) {
 	if reqType == "" {
 		msg := "Request type cannot be empty"
 		logger.Error(msg, nil)
 		return nil, api_error.NewInternalServerError(msg, nil)
 	}
-	subscriptionUrl, _ := url.Parse(r.cfg.PbApi.BaseUrl + "webhooks" + UrlExt)
-	req, reqErr := http.NewRequest(reqType, subscriptionUrl.String(), body)
+	req, reqErr := http.NewRequest(reqType, url, body)
 	if reqErr != nil {
 		msg := "Could not create http request"
 		logger.Error(msg, reqErr)
