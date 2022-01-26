@@ -29,7 +29,8 @@ func (r PbApiRepository) RegisterForNotifications() api_error.ApiErr {
 	if err != nil {
 		return err
 	}
-	reqUrl, _ := url.Parse(r.cfg.PbApi.BaseUrl + "webhooks")
+	reqUrl, _ := url.Parse(r.cfg.PbApi.BaseUrl)
+	reqUrl.Path = "/webhook"
 	req, err := r.PrepareHttpRequest("POST", reqUrl.String(), bytes.NewBuffer(*subReq))
 	if err != nil {
 		return err
@@ -44,7 +45,8 @@ func (r PbApiRepository) RegisterForNotifications() api_error.ApiErr {
 func (r PbApiRepository) GetNotifications() (*dto.PbSubscriptionResponse, api_error.ApiErr) {
 	var pbResp dto.PbSubscriptionResponse
 
-	reqUrl, _ := url.Parse(r.cfg.PbApi.BaseUrl + "webhooks")
+	reqUrl, _ := url.Parse(r.cfg.PbApi.BaseUrl)
+	reqUrl.Path = "/webhook"
 	req, err := r.PrepareHttpRequest("GET", reqUrl.String(), nil)
 	if err != nil {
 		return nil, err

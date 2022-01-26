@@ -138,3 +138,37 @@ func Test_ExecHttpRequest_Success_Returns_Body(t *testing.T) {
 	assert.Nil(t, respErr)
 	assert.EqualValues(t, "Success", string(*resp))
 }
+
+func Test_RegisterForNotifications_ExecFails_Returns_InternalServerError(t *testing.T) {
+	teardown := setupTest(t)
+	defer teardown()
+	cfg.PbApi.BaseUrl = ""
+
+	err := repo.RegisterForNotifications()
+
+	assert.NotNil(t, err)
+	assert.EqualValues(t, http.StatusInternalServerError, err.StatusCode())
+	assert.EqualValues(t, "Error when executing http request", err.Message())
+}
+
+func Test_RegisterForNotifications_ReturnsNoError(t *testing.T) {
+	teardown := setupTest(t)
+	defer teardown()
+	srv := httptest.NewServer(
+		http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte("Success"))
+		}),
+	)
+	defer srv.Close()
+	cfg.PbApi.BaseUrl = srv.URL
+
+	err := repo.RegisterForNotifications()
+
+	assert.Nil(t, err)
+}
+
+func Test_GetNotifications_ExecFails_Returns_InternalServerErr(t *testing.T) {
+	teardown := setupTest(t)
+	defer teardown()
+}
