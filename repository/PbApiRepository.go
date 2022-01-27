@@ -85,6 +85,10 @@ func (r PbApiRepository) UnregisterForNotifications(notifs dto.PbSubscriptionRes
 	return nil
 }
 
+func (r PbApiRepository) GetFeatureData() api_error.ApiErr {
+	return nil
+}
+
 func (r PbApiRepository) PrepareHttpRequest(reqType string, url string, body io.Reader) (*http.Request, api_error.ApiErr) {
 	if reqType == "" {
 		msg := "Request type cannot be empty"

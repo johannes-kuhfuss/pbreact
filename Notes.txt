@@ -1,4 +1,8 @@
-- Unit tests
-- Notif handler
--- differentiate by event type
--- implement Pb Api Get for features
+Handler queues new element for processing
+- Service needs queue & queue implementation
+- Service needs method to dequeue
+
+Service processes notifications
+- Service dequeues element
+- Service gets all of element's data (repo: get element data method)
+- ?

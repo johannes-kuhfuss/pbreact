@@ -63,5 +63,6 @@ func (whh *WebHookHandler) PbWhEvents(c *gin.Context) {
 		c.JSON(apiErr.StatusCode(), apiErr)
 		return
 	}
+	// queue element for processing
 	c.JSON(http.StatusNoContent, nil)
 }
