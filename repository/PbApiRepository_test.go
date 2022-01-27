@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"testing"
+	"time"
 
 	"github.com/johannes-kuhfuss/pbreact/config"
 	"github.com/johannes-kuhfuss/pbreact/dto"
@@ -171,4 +172,135 @@ func Test_RegisterForNotifications_ReturnsNoError(t *testing.T) {
 func Test_GetNotifications_ExecFails_Returns_InternalServerErr(t *testing.T) {
 	teardown := setupTest(t)
 	defer teardown()
+	cfg.PbApi.BaseUrl = ""
+
+	notifs, err := repo.GetNotifications()
+
+	assert.Nil(t, notifs)
+	assert.NotNil(t, err)
+	assert.EqualValues(t, http.StatusInternalServerError, err.StatusCode())
+	assert.EqualValues(t, "Error when executing http request", err.Message())
+}
+
+func Test_GetNotifications_BodyParsingFails_Returns_InternalServerErr(t *testing.T) {
+	teardown := setupTest(t)
+	defer teardown()
+	srv := httptest.NewServer(
+		http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte("Not JSON"))
+		}),
+	)
+	defer srv.Close()
+	cfg.PbApi.BaseUrl = srv.URL
+
+	notifs, err := repo.GetNotifications()
+
+	assert.Nil(t, notifs)
+	assert.NotNil(t, err)
+	assert.EqualValues(t, http.StatusInternalServerError, err.StatusCode())
+	assert.EqualValues(t, "Error parsing subscription list", err.Message())
+}
+
+func Test_GetNotifications_NoSubs_Returns_NotFoundError(t *testing.T) {
+	teardown := setupTest(t)
+	defer teardown()
+	subs := dto.PbSubscriptionResponse{
+		Data:  []dto.SubRespData{},
+		Links: dto.Links{},
+	}
+	srv := httptest.NewServer(
+		http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(subs)
+		}),
+	)
+	defer srv.Close()
+	cfg.PbApi.BaseUrl = srv.URL
+
+	notifs, err := repo.GetNotifications()
+
+	assert.Nil(t, notifs)
+	assert.NotNil(t, err)
+	assert.EqualValues(t, http.StatusNotFound, err.StatusCode())
+	assert.EqualValues(t, "No subscriptions found", err.Message())
+}
+
+func Test_GetNotifications_Returns_NoError(t *testing.T) {
+	teardown := setupTest(t)
+	defer teardown()
+	now := time.Now().UTC()
+	subs := dto.PbSubscriptionResponse{
+		Data: []dto.SubRespData{{
+			ID:        "abc",
+			CreatedAt: now,
+			Name:      "my sub",
+			Events:    []dto.Events{},
+		}},
+		Links: dto.Links{},
+	}
+	srv := httptest.NewServer(
+		http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(subs)
+		}),
+	)
+	defer srv.Close()
+	cfg.PbApi.BaseUrl = srv.URL
+
+	notifs, err := repo.GetNotifications()
+
+	assert.NotNil(t, notifs)
+	assert.Nil(t, err)
+	assert.EqualValues(t, subs, *notifs)
+}
+
+func Test_UnregisterForNotifications_ExecFails_Returns_InternalServerError(t *testing.T) {
+	teardown := setupTest(t)
+	defer teardown()
+	cfg.PbApi.BaseUrl = ""
+	now := time.Now().UTC()
+	subs := dto.PbSubscriptionResponse{
+		Data: []dto.SubRespData{{
+			ID:        "abc",
+			CreatedAt: now,
+			Name:      "my sub",
+			Events:    []dto.Events{},
+		}},
+		Links: dto.Links{},
+	}
+
+	err := repo.UnregisterForNotifications(subs)
+
+	assert.NotNil(t, err)
+	assert.EqualValues(t, http.StatusInternalServerError, err.StatusCode())
+	assert.EqualValues(t, "Error when executing http request", err.Message())
+}
+
+func Test_UnregisterForNotifications_Returns_NoError(t *testing.T) {
+	teardown := setupTest(t)
+	defer teardown()
+	srv := httptest.NewServer(
+		http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte("Success"))
+		}),
+	)
+	cfg.PbApi.BaseUrl = srv.URL
+	now := time.Now().UTC()
+	subs := dto.PbSubscriptionResponse{
+		Data: []dto.SubRespData{{
+			ID:        "abc",
+			CreatedAt: now,
+			Name:      "my sub",
+			Events:    []dto.Events{},
+		}},
+		Links: dto.Links{},
+	}
+
+	err := repo.UnregisterForNotifications(subs)
+
+	assert.Nil(t, err)
 }

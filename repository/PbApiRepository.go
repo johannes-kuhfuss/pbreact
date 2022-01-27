@@ -71,8 +71,8 @@ func (r PbApiRepository) GetNotifications() (*dto.PbSubscriptionResponse, api_er
 
 func (r PbApiRepository) UnregisterForNotifications(notifs dto.PbSubscriptionResponse) api_error.ApiErr {
 	for _, val := range notifs.Data {
-		urlExt := fmt.Sprintf("/%v", val.ID)
-		reqUrl, _ := url.Parse(r.cfg.PbApi.BaseUrl + "webhooks" + urlExt)
+		reqUrl, _ := url.Parse(r.cfg.PbApi.BaseUrl)
+		reqUrl.Path = fmt.Sprintf("/webhook/%v", val.ID)
 		req, err := r.PrepareHttpRequest("DELETE", reqUrl.String(), nil)
 		if err != nil {
 			return err
